@@ -48,6 +48,31 @@
         "command": "workflow-generator.cleanLocalBranches",
         "title": "清理本地已合并分支",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.manageSecrets",
+        "title": "管理 GitHub Secrets",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.openSecrets",
+        "title": "打开 Secrets 页面",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.openActions",
+        "title": "打开 Actions 页面",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.initRepo",
+        "title": "初始化 Git 仓库",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.addRemoteAndPush",
+        "title": "推送到远程仓库",
+        "category": "Workflow"
       }
     ],
     "menus": {
@@ -85,8 +110,12 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.95.0",
-    "typescript-eslint": "^8.18.0",
     "eslint": "^9.16.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.18.0"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1"
   }
 }

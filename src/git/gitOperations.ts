@@ -5,11 +5,16 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 export class GitOperations {
-    private async runGitCommand(command: string): Promise<string> {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolder) {
+    private getWorkspaceFolder(): vscode.WorkspaceFolder {
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        if (!folder) {
             throw new Error('请先打开一个工作区');
         }
+        return folder;
+    }
+
+    private async runGitCommand(command: string): Promise<string> {
+        const workspaceFolder = this.getWorkspaceFolder();
 
         try {
             const { stdout } = await execAsync(command, { cwd: workspaceFolder.uri.fsPath });
@@ -17,6 +22,171 @@ export class GitOperations {
         } catch (error: unknown) {
             const err = error as { stderr?: string; message?: string };
             throw new Error(err.stderr || err.message || 'Unknown error');
+        }
+    }
+
+    async isGitRepo(): Promise<boolean> {
+        try {
+            await this.runGitCommand('git rev-parse --git-dir');
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async initRepo(): Promise<void> {
+        try {
+            const isRepo = await this.isGitRepo();
+            if (isRepo) {
+                vscode.window.showInformationMessage('当前目录已经是 Git 仓库');
+                return;
+            }
+
+            const defaultBranch = await vscode.window.showQuickPick(['main', 'master'], {
+                placeHolder: '选择默认分支名称'
+            });
+            if (!defaultBranch) return;
+
+            await this.runGitCommand(`git init -b ${defaultBranch}`);
+            
+            // 询问是否创建 .gitignore
+            const createGitignore = await vscode.window.showQuickPick(
+                ['是，创建 .gitignore', '否，跳过'],
+                { placeHolder: '是否创建 .gitignore？' }
+            );
+
+            if (createGitignore?.startsWith('是')) {
+                const templates = ['Visual Studio', 'Node', 'Python', '自定义'];
+                const template = await vscode.window.showQuickPick(templates, {
+                    placeHolder: '选择 .gitignore 模板'
+                });
+
+                if (template && template !== '自定义') {
+                    await this.createGitignore(template);
+                }
+            }
+
+            vscode.window.showInformationMessage('Git 仓库初始化完成');
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`初始化失败: ${(error as Error).message}`);
+        }
+    }
+
+    private async createGitignore(template: string): Promise<void> {
+        const fs = await import('fs');
+        const path = await import('path');
+        const workspaceFolder = this.getWorkspaceFolder();
+
+        const templates: Record<string, string> = {
+            'Visual Studio': `# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+packages/
+*.nupkg
+`,
+            'Node': `# Node
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+`,
+            'Python': `# Python
+__pycache__/
+*.py[cod]
+.env
+venv/
+.venv/
+dist/
+*.egg-info/
+`
+        };
+
+        const content = templates[template] || '';
+        const gitignorePath = path.join(workspaceFolder.uri.fsPath, '.gitignore');
+        fs.writeFileSync(gitignorePath, content);
+    }
+
+    async addRemoteAndPush(): Promise<void> {
+        try {
+            const isRepo = await this.isGitRepo();
+            if (!isRepo) {
+                const init = await vscode.window.showWarningMessage(
+                    '当前目录不是 Git 仓库，是否初始化？',
+                    '初始化', '取消'
+                );
+                if (init === '初始化') {
+                    await this.initRepo();
+                } else {
+                    return;
+                }
+            }
+
+            // 检查是否有远程仓库
+            let hasRemote = false;
+            try {
+                const remotes = await this.runGitCommand('git remote');
+                hasRemote = remotes.includes('origin');
+            } catch {
+                hasRemote = false;
+            }
+
+            if (!hasRemote) {
+                const remoteUrl = await vscode.window.showInputBox({
+                    prompt: '输入远程仓库地址',
+                    placeHolder: 'https://github.com/username/repo.git 或 git@github.com:username/repo.git'
+                });
+
+                if (!remoteUrl) return;
+
+                await this.runGitCommand(`git remote add origin ${remoteUrl}`);
+                vscode.window.showInformationMessage('远程仓库已添加');
+            }
+
+            // 检查是否有提交
+            let hasCommits = false;
+            try {
+                await this.runGitCommand('git rev-parse HEAD');
+                hasCommits = true;
+            } catch {
+                hasCommits = false;
+            }
+
+            if (!hasCommits) {
+                const commitMsg = await vscode.window.showInputBox({
+                    prompt: '输入首次提交信息',
+                    value: 'Initial commit'
+                });
+
+                if (!commitMsg) return;
+
+                await this.runGitCommand('git add -A');
+                await this.runGitCommand(`git commit -m "${commitMsg}"`);
+            }
+
+            // 推送
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: '推送到远程仓库...' },
+                async () => {
+                    try {
+                        await this.runGitCommand('git push -u origin HEAD');
+                    } catch {
+                        // 如果失败，尝试强制推送（新仓库）
+                        await this.runGitCommand('git push -u origin HEAD --force');
+                    }
+                }
+            );
+
+            vscode.window.showInformationMessage('推送成功！');
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
         }
     }
 

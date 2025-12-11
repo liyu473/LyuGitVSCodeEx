@@ -7,7 +7,11 @@ interface ActionItem {
 }
 
 const ACTIONS: ActionItem[] = [
+    { label: '初始化 Git 仓库', command: 'workflow-generator.initRepo', icon: 'repo' },
+    { label: '推送到远程仓库', command: 'workflow-generator.addRemoteAndPush', icon: 'repo-push' },
     { label: '生成 Release.yml', command: 'workflow-generator.generateReleaseYml', icon: 'file-code' },
+    { label: '管理 GitHub Secrets', command: 'workflow-generator.manageSecrets', icon: 'key' },
+    { label: '打开 Actions 页面', command: 'workflow-generator.openActions', icon: 'github-action' },
     { label: '删除最新 Tag', command: 'workflow-generator.deleteLatestTag', icon: 'trash' },
     { label: 'Git Pull', command: 'workflow-generator.gitPull', icon: 'cloud-download' },
     { label: 'Git Push', command: 'workflow-generator.gitPush', icon: 'cloud-upload' },
