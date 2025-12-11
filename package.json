@@ -95,8 +95,9 @@
     "views": {
       "workflow-generator": [
         {
-          "id": "workflowActions",
-          "name": "快捷操作"
+          "type": "webview",
+          "id": "workflowWebview",
+          "name": "工具面板"
         }
       ]
     }

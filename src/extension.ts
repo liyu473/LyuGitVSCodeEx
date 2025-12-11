@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ReleaseYmlGenerator } from './generators/releaseYmlGenerator';
 import { GitOperations } from './git/gitOperations';
 import { GitHubHelper } from './git/githubHelper';
-import { WorkflowTreeProvider } from './views/workflowTreeProvider';
+import { WorkflowWebviewProvider } from './views/webviewPanel';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Workflow Generator 已激活');
@@ -11,9 +11,11 @@ export function activate(context: vscode.ExtensionContext) {
     const releaseGenerator = new ReleaseYmlGenerator();
     const githubHelper = new GitHubHelper();
 
-    // 注册树视图
-    const treeProvider = new WorkflowTreeProvider();
-    vscode.window.registerTreeDataProvider('workflowActions', treeProvider);
+    // 注册 Webview 视图
+    const webviewProvider = new WorkflowWebviewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(WorkflowWebviewProvider.viewType, webviewProvider)
+    );
 
     // 生成 Release.yml
     context.subscriptions.push(
