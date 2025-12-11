@@ -1,0 +1,92 @@
+{
+  "name": "workflow-generator",
+  "displayName": "Workflow Generator",
+  "description": "快速生成 CI/CD 工作流和 Git 操作工具",
+  "version": "0.0.1",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "workflow-generator.generateReleaseYml",
+        "title": "生成 Release.yml (NuGet)",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.deleteLatestTag",
+        "title": "删除最新 Tag",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.gitPull",
+        "title": "Git Pull",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.gitPush",
+        "title": "Git Push",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.deleteLocalTag",
+        "title": "删除本地 Tag",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.deleteRemoteTag",
+        "title": "删除远程 Tag",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.cleanLocalBranches",
+        "title": "清理本地已合并分支",
+        "category": "Workflow"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "workflow-generator.generateReleaseYml",
+          "group": "workflow@1"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "workflow-generator",
+          "title": "Workflow Generator",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "workflow-generator": [
+        {
+          "id": "workflowActions",
+          "name": "快捷操作"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.95.0",
+    "typescript-eslint": "^8.18.0",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.0"
+  }
+}
