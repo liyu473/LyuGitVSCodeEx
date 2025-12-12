@@ -123,6 +123,9 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <button class="btn" onclick="exec('workflow-generator.openActions')" title="在浏览器中打开当前仓库的 GitHub Actions 页面，查看工作流运行状态和日志">
                 <span class="icon">▶️</span> 打开 Actions 页面
             </button>
+            <button class="btn btn-danger" onclick="exec('workflow-generator.deleteWorkflowRuns')" title="获取最近 30 条 Actions 运行记录，可多选删除。显示状态（✅成功/❌失败/🔄进行中）、运行编号、分支和时间">
+                <span class="icon">🗑️</span> 删除 Actions 记录
+            </button>
         </div>
     </div>
 

@@ -94,6 +94,13 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // 删除 Actions 运行记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.deleteWorkflowRuns', async () => {
+            await githubHelper.deleteWorkflowRuns();
+        })
+    );
+
     // 初始化 Git 仓库
     context.subscriptions.push(
         vscode.commands.registerCommand('workflow-generator.initRepo', async () => {

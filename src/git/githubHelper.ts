@@ -248,6 +248,94 @@ export class GitHubHelper {
         return util.encodeBase64(combined);
     }
 
+    async deleteWorkflowRuns(): Promise<void> {
+        const token = await this.getGitHubToken();
+        if (!token) return;
+
+        const remoteUrl = await this.getRepoUrl();
+        if (!remoteUrl) {
+            vscode.window.showErrorMessage('未找到 Git 远程仓库');
+            return;
+        }
+
+        const parsed = this.parseGitHubUrl(remoteUrl);
+        if (!parsed) {
+            vscode.window.showErrorMessage('不是 GitHub 仓库');
+            return;
+        }
+
+        const { owner, repo } = parsed;
+
+        // 获取工作流运行记录
+        const { status, data } = await this.githubRequest(
+            'GET', `/repos/${owner}/${repo}/actions/runs?per_page=30`, token
+        );
+
+        if (status !== 200) {
+            vscode.window.showErrorMessage('获取 Actions 记录失败');
+            return;
+        }
+
+        const runs = (data as { workflow_runs: Array<{
+            id: number;
+            name: string;
+            head_branch: string;
+            conclusion: string | null;
+            status: string;
+            created_at: string;
+            run_number: number;
+        }> }).workflow_runs;
+
+        if (runs.length === 0) {
+            vscode.window.showInformationMessage('没有 Actions 运行记录');
+            return;
+        }
+
+        // 格式化显示
+        const items = runs.map(run => {
+            const status = run.conclusion || run.status;
+            const statusIcon = status === 'success' ? '✅' : status === 'failure' ? '❌' : status === 'cancelled' ? '⚪' : '🔄';
+            const date = new Date(run.created_at).toLocaleString();
+            return {
+                label: `${statusIcon} #${run.run_number} ${run.name}`,
+                description: `${run.head_branch} - ${date}`,
+                id: run.id
+            };
+        });
+
+        const selected = await vscode.window.showQuickPick(items, {
+            canPickMany: true,
+            placeHolder: '选择要删除的 Actions 运行记录（可多选）'
+        });
+
+        if (!selected || selected.length === 0) return;
+
+        const confirm = await vscode.window.showWarningMessage(
+            `确定删除 ${selected.length} 条 Actions 运行记录？`,
+            { modal: true },
+            '确定删除'
+        );
+
+        if (confirm !== '确定删除') return;
+
+        await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: '正在删除...' },
+            async (progress) => {
+                let deleted = 0;
+                for (const item of selected) {
+                    const { status: delStatus } = await this.githubRequest(
+                        'DELETE', `/repos/${owner}/${repo}/actions/runs/${item.id}`, token
+                    );
+                    if (delStatus === 204) {
+                        deleted++;
+                    }
+                    progress.report({ increment: 100 / selected.length });
+                }
+                vscode.window.showInformationMessage(`✅ 已删除 ${deleted} 条记录`);
+            }
+        );
+    }
+
     private async deleteSecret(token: string, owner: string, repo: string): Promise<void> {
         const { status, data } = await this.githubRequest('GET', `/repos/${owner}/${repo}/actions/secrets`, token);
         

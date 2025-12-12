@@ -70,6 +70,11 @@
         "category": "Workflow"
       },
       {
+        "command": "workflow-generator.deleteWorkflowRuns",
+        "title": "删除 Actions 记录",
+        "category": "Workflow"
+      },
+      {
         "command": "workflow-generator.initRepo",
         "title": "初始化 Git 仓库",
         "category": "Workflow"
