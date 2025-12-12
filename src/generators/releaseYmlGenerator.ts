@@ -146,12 +146,11 @@ export class ReleaseYmlGenerator {
                     buildSteps += `
 
       - name: Publish ${projName} (${runtime})
-        run: dotnet publish ${proj} -c Release -r ${runtime} --self-contained -o ./publish/${projName}-${runtime}
+        run: dotnet publish ${proj} -c Release -r ${runtime} --self-contained -p:PublishSingleFile=true -o ./publish/${projName}-${runtime}
 
       - name: Zip ${projName} (${runtime})
-        run: |
-          cd ./publish
-          zip -r ${projName}-${runtime}.zip ${projName}-${runtime}`;
+        shell: pwsh
+        run: Compress-Archive -Path ./publish/${projName}-${runtime}/* -DestinationPath ./publish/${projName}-${runtime}.zip`;
                 }
             }
         }
