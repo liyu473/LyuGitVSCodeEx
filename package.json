@@ -149,6 +149,7 @@
     "lint": "eslint src"
   },
   "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.95.0",
     "eslint": "^9.16.0",
@@ -156,7 +157,6 @@
     "typescript-eslint": "^8.18.0"
   },
   "dependencies": {
-    "tweetnacl": "^1.0.3",
-    "tweetnacl-util": "^0.15.1"
+    "libsodium-wrappers": "^0.7.15"
   }
 }

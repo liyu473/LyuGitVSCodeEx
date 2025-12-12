@@ -133,6 +133,31 @@ export class GitHubHelper {
         });
     }
 
+    // 带重试的请求
+    private async githubRequestWithRetry(
+        method: string,
+        path: string,
+        token: string,
+        body?: object,
+        maxRetries = 3
+    ): Promise<{ status: number; data: unknown }> {
+        let lastError: Error | null = null;
+        
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await this.githubRequest(method, path, token, body);
+            } catch (error) {
+                lastError = error as Error;
+                if (i < maxRetries - 1) {
+                    // 等待后重试
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+        
+        throw lastError;
+    }
+
     // 带加载提示的 API 请求
     private async githubRequestWithProgress<T>(
         title: string,
@@ -144,16 +169,28 @@ export class GitHubHelper {
         try {
             return await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title, cancellable: true },
-                async (_, cancelToken) => {
-                    return new Promise((resolve, reject) => {
-                        cancelToken.onCancellationRequested(() => {
-                            reject(new Error('已取消'));
-                        });
-                        
-                        this.githubRequest(method, path, token, body)
-                            .then(result => resolve(result as { status: number; data: T }))
-                            .catch(reject);
+                async (progress, cancelToken) => {
+                    let cancelled = false;
+                    cancelToken.onCancellationRequested(() => {
+                        cancelled = true;
                     });
+                    
+                    let lastError: Error | null = null;
+                    for (let i = 0; i < 3; i++) {
+                        if (cancelled) throw new Error('已取消');
+                        
+                        try {
+                            progress.report({ message: i > 0 ? `重试中 (${i}/3)...` : undefined });
+                            const result = await this.githubRequest(method, path, token, body);
+                            return result as { status: number; data: T };
+                        } catch (error) {
+                            lastError = error as Error;
+                            if (i < 2) {
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                            }
+                        }
+                    }
+                    throw lastError;
                 }
             );
         } catch (error: unknown) {
@@ -275,25 +312,18 @@ export class GitHubHelper {
     }
 
     private async encryptSecret(secret: string, publicKey: string): Promise<string> {
-        const sodium = await import('tweetnacl');
-        const util = await import('tweetnacl-util');
+        const sodium = await import('libsodium-wrappers');
+        await sodium.ready;
         
-        const keyBytes = util.decodeBase64(publicKey);
-        const messageBytes = util.decodeUTF8(secret);
+        // 解码公钥
+        const keyBytes = sodium.from_base64(publicKey, sodium.base64_variants.ORIGINAL);
         
-        // GitHub 使用 sealed box，tweetnacl 不直接支持
-        // 使用 box 模拟：生成临时密钥对，加密后把公钥和密文拼接
-        const ephemeralKeyPair = sodium.box.keyPair();
-        const nonce = new Uint8Array(sodium.box.nonceLength); // 全零 nonce（sealed box 规范）
+        // 使用 sealed box 加密（GitHub 要求的格式）
+        const messageBytes = sodium.from_string(secret);
+        const encryptedBytes = sodium.crypto_box_seal(messageBytes, keyBytes);
         
-        const encryptedBytes = sodium.box(messageBytes, nonce, keyBytes, ephemeralKeyPair.secretKey);
-        
-        // 拼接：临时公钥 + 密文
-        const combined = new Uint8Array(ephemeralKeyPair.publicKey.length + encryptedBytes.length);
-        combined.set(ephemeralKeyPair.publicKey);
-        combined.set(encryptedBytes, ephemeralKeyPair.publicKey.length);
-        
-        return util.encodeBase64(combined);
+        // 返回 base64 编码
+        return sodium.to_base64(encryptedBytes, sodium.base64_variants.ORIGINAL);
     }
 
     async deleteWorkflowRuns(): Promise<void> {
