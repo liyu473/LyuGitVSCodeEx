@@ -351,36 +351,26 @@ dist/
         }
     }
 
+    // 回退本地记录（选择某个提交回退）
     async resetLocalCommits(): Promise<void> {
         try {
-            // 获取提交数量
-            let totalCommits = 0;
-            try {
-                const count = await this.runGitCommand('git rev-list --count HEAD');
-                totalCommits = parseInt(count);
-            } catch {
+            const log = await this.runGitCommand('git log --oneline -20');
+            if (!log) {
                 vscode.window.showWarningMessage('没有提交记录');
                 return;
             }
 
-            if (totalCommits === 0) {
-                vscode.window.showWarningMessage('没有提交记录');
-                return;
-            }
+            const commits = log.split('\n').map(line => {
+                const [hash, ...msg] = line.split(' ');
+                return { label: msg.join(' '), description: hash, hash };
+            });
 
-            // 选择删除几个提交
-            const options = [];
-            for (let i = 1; i <= Math.min(totalCommits, 10); i++) {
-                options.push({ label: `删除最近 ${i} 个提交`, value: i });
-            }
-
-            const selected = await vscode.window.showQuickPick(options, {
-                placeHolder: `当前共 ${totalCommits} 个提交，选择要删除的数量`
+            const selected = await vscode.window.showQuickPick(commits, {
+                placeHolder: '选择要回退到的提交'
             });
 
             if (!selected) return;
 
-            // 选择回退模式
             const mode = await vscode.window.showQuickPick([
                 { label: '软回退 (--soft)', description: '保留修改在暂存区', value: '--soft' },
                 { label: '混合回退 (--mixed)', description: '保留修改但不暂存', value: '--mixed' },
@@ -390,7 +380,101 @@ dist/
             if (!mode) return;
 
             const confirm = await vscode.window.showWarningMessage(
-                `确定要删除最近 ${selected.value} 个本地提交吗？${mode.value === '--hard' ? '\n⚠️ 所有未提交的修改将丢失！' : ''}`,
+                `确定要回退到 "${selected.label}" 吗？${mode.value === '--hard' ? '\n⚠️ 所有未提交的修改将丢失！' : ''}`,
+                { modal: true },
+                '确定回退'
+            );
+
+            if (confirm !== '确定回退') return;
+
+            await this.runGitCommand(`git reset ${mode.value} ${selected.hash}`);
+            vscode.window.showInformationMessage(`✅ 已回退到: ${selected.label}`);
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
+        }
+    }
+
+    // 回退远程记录（选择某个提交，本地和远程都回退）
+    async resetRemoteCommits(): Promise<void> {
+        try {
+            try {
+                await this.runGitCommand('git remote get-url origin');
+            } catch {
+                vscode.window.showErrorMessage('没有配置远程仓库');
+                return;
+            }
+
+            const log = await this.runGitCommand('git log --oneline -20');
+            if (!log) {
+                vscode.window.showWarningMessage('没有提交记录');
+                return;
+            }
+
+            const commits = log.split('\n').map(line => {
+                const [hash, ...msg] = line.split(' ');
+                return { label: msg.join(' '), description: hash, hash };
+            });
+
+            const selected = await vscode.window.showQuickPick(commits, {
+                placeHolder: '选择要回退到的提交（本地和远程都会回退）'
+            });
+
+            if (!selected) return;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `⚠️ 危险操作！\n\n将回退本地和远程到 "${selected.label}"。\n\n确定要继续吗？`,
+                { modal: true },
+                '我了解风险，确定回退'
+            );
+
+            if (confirm !== '我了解风险，确定回退') return;
+
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: '正在回退...' },
+                async () => {
+                    await this.runGitCommand(`git reset --hard ${selected.hash}`);
+                    await this.runGitCommand('git push --force');
+                }
+            );
+
+            vscode.window.showInformationMessage(`✅ 本地和远程已回退到: ${selected.label}`);
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
+        }
+    }
+
+    // 删除本地记录（选择删除几个）
+    async deleteLocalCommits(): Promise<void> {
+        try {
+            const count = await this.runGitCommand('git rev-list --count HEAD');
+            const totalCommits = parseInt(count);
+
+            if (totalCommits === 0) {
+                vscode.window.showWarningMessage('没有提交记录');
+                return;
+            }
+
+            const options = [];
+            for (let i = 1; i <= Math.min(totalCommits, 10); i++) {
+                options.push({ label: `删除最近 ${i} 个提交`, value: i });
+            }
+
+            const selected = await vscode.window.showQuickPick(options, {
+                placeHolder: `当前共 ${totalCommits} 个提交`
+            });
+
+            if (!selected) return;
+
+            const mode = await vscode.window.showQuickPick([
+                { label: '软删除 (--soft)', description: '保留修改在暂存区', value: '--soft' },
+                { label: '混合删除 (--mixed)', description: '保留修改但不暂存', value: '--mixed' },
+                { label: '硬删除 (--hard)', description: '丢弃所有修改（危险）', value: '--hard' }
+            ], { placeHolder: '选择删除模式' });
+
+            if (!mode) return;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `确定要删除最近 ${selected.value} 个本地提交吗？${mode.value === '--hard' ? '\n⚠️ 所有修改将丢失！' : ''}`,
                 { modal: true },
                 '确定删除'
             );
@@ -404,9 +488,9 @@ dist/
         }
     }
 
-    async resetRemoteCommits(): Promise<void> {
+    // 删除远程记录（选择删除几个，本地和远程都删）
+    async deleteRemoteCommits(): Promise<void> {
         try {
-            // 检查远程仓库
             try {
                 await this.runGitCommand('git remote get-url origin');
             } catch {
@@ -414,35 +498,27 @@ dist/
                 return;
             }
 
-            // 获取提交数量
-            let totalCommits = 0;
-            try {
-                const count = await this.runGitCommand('git rev-list --count HEAD');
-                totalCommits = parseInt(count);
-            } catch {
-                vscode.window.showWarningMessage('没有提交记录');
-                return;
-            }
+            const count = await this.runGitCommand('git rev-list --count HEAD');
+            const totalCommits = parseInt(count);
 
             if (totalCommits === 0) {
                 vscode.window.showWarningMessage('没有提交记录');
                 return;
             }
 
-            // 选择删除几个提交
             const options = [];
             for (let i = 1; i <= Math.min(totalCommits, 10); i++) {
                 options.push({ label: `删除最近 ${i} 个提交`, value: i });
             }
 
             const selected = await vscode.window.showQuickPick(options, {
-                placeHolder: `当前共 ${totalCommits} 个提交，选择要删除的数量（本地和远程都会删除）`
+                placeHolder: `当前共 ${totalCommits} 个提交（本地和远程都会删除）`
             });
 
             if (!selected) return;
 
             const confirm = await vscode.window.showWarningMessage(
-                `⚠️ 危险操作！\n\n将删除本地和远程的最近 ${selected.value} 个提交。\n\n如果其他人已经拉取了这些提交，会导致他们的仓库出问题。\n\n确定要继续吗？`,
+                `⚠️ 危险操作！\n\n将删除本地和远程的最近 ${selected.value} 个提交。\n\n确定要继续吗？`,
                 { modal: true },
                 '我了解风险，确定删除'
             );
@@ -450,11 +526,9 @@ dist/
             if (confirm !== '我了解风险，确定删除') return;
 
             await vscode.window.withProgress(
-                { location: vscode.ProgressLocation.Notification, title: '正在删除提交...' },
+                { location: vscode.ProgressLocation.Notification, title: '正在删除...' },
                 async () => {
-                    // 本地硬回退
                     await this.runGitCommand(`git reset --hard HEAD~${selected.value}`);
-                    // 强制推送到远程
                     await this.runGitCommand('git push --force');
                 }
             );

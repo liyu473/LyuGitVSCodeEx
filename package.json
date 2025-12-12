@@ -83,6 +83,16 @@
         "command": "workflow-generator.resetRemoteCommits",
         "title": "回退远程记录",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.deleteLocalCommits",
+        "title": "删除本地记录",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.deleteRemoteCommits",
+        "title": "删除远程记录",
+        "category": "Workflow"
       }
     ],
     "menus": {

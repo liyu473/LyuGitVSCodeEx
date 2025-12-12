@@ -114,6 +114,20 @@ export function activate(context: vscode.ExtensionContext) {
             await gitOps.resetRemoteCommits();
         })
     );
+
+    // 删除本地记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.deleteLocalCommits', async () => {
+            await gitOps.deleteLocalCommits();
+        })
+    );
+
+    // 删除远程记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.deleteRemoteCommits', async () => {
+            await gitOps.deleteRemoteCommits();
+        })
+    );
 }
 
 export function deactivate() {}
