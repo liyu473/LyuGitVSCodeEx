@@ -350,4 +350,91 @@ dist/
             vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
         }
     }
+
+    async resetLocalCommits(): Promise<void> {
+        try {
+            // 获取最近的提交记录
+            const log = await this.runGitCommand('git log --oneline -20');
+            if (!log) {
+                vscode.window.showWarningMessage('没有提交记录');
+                return;
+            }
+
+            const commits = log.split('\n').map(line => {
+                const [hash, ...msg] = line.split(' ');
+                return { label: msg.join(' '), description: hash, hash };
+            });
+
+            const selected = await vscode.window.showQuickPick(commits, {
+                placeHolder: '选择要回退到的提交（本地记录将被删除）'
+            });
+
+            if (!selected) return;
+
+            const mode = await vscode.window.showQuickPick([
+                { label: '软回退 (--soft)', description: '保留修改在暂存区', value: '--soft' },
+                { label: '混合回退 (--mixed)', description: '保留修改但不暂存', value: '--mixed' },
+                { label: '硬回退 (--hard)', description: '丢弃所有修改（危险）', value: '--hard' }
+            ], { placeHolder: '选择回退模式' });
+
+            if (!mode) return;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `确定要回退到 "${selected.label}" 吗？${mode.value === '--hard' ? '所有未提交的修改将丢失！' : ''}`,
+                { modal: true },
+                '确定回退'
+            );
+
+            if (confirm !== '确定回退') return;
+
+            await this.runGitCommand(`git reset ${mode.value} ${selected.hash}`);
+            vscode.window.showInformationMessage(`已回退到: ${selected.label}`);
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
+        }
+    }
+
+    async resetRemoteCommits(): Promise<void> {
+        try {
+            // 获取最近的提交记录
+            const log = await this.runGitCommand('git log --oneline -20');
+            if (!log) {
+                vscode.window.showWarningMessage('没有提交记录');
+                return;
+            }
+
+            const commits = log.split('\n').map(line => {
+                const [hash, ...msg] = line.split(' ');
+                return { label: msg.join(' '), description: hash, hash };
+            });
+
+            const selected = await vscode.window.showQuickPick(commits, {
+                placeHolder: '选择要回退到的提交（远程记录将被强制覆盖）'
+            });
+
+            if (!selected) return;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `⚠️ 危险操作！\n\n这将强制覆盖远程仓库的历史记录到 "${selected.label}"。\n\n如果其他人已经拉取了这些提交，会导致他们的仓库出问题。\n\n确定要继续吗？`,
+                { modal: true },
+                '我了解风险，继续'
+            );
+
+            if (confirm !== '我了解风险，继续') return;
+
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: '正在重置远程记录...' },
+                async () => {
+                    // 先本地硬回退
+                    await this.runGitCommand(`git reset --hard ${selected.hash}`);
+                    // 强制推送到远程
+                    await this.runGitCommand('git push --force');
+                }
+            );
+
+            vscode.window.showInformationMessage(`远程仓库已回退到: ${selected.label}`);
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
+        }
+    }
 }

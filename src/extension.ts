@@ -100,6 +100,20 @@ export function activate(context: vscode.ExtensionContext) {
             await gitOps.addRemoteAndPush();
         })
     );
+
+    // 回退本地记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.resetLocalCommits', async () => {
+            await gitOps.resetLocalCommits();
+        })
+    );
+
+    // 回退远程记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.resetRemoteCommits', async () => {
+            await gitOps.resetRemoteCommits();
+        })
+    );
 }
 
 export function deactivate() {}

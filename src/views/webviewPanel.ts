@@ -200,6 +200,20 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
     <div class="divider"></div>
 
     <div class="section">
+        <div class="section-title">⏪ 回退记录</div>
+        <div class="btn-group">
+            <button class="btn" onclick="exec('workflow-generator.resetLocalCommits')">
+                <span class="icon">↩️</span> 回退本地记录
+            </button>
+            <button class="btn btn-danger" onclick="exec('workflow-generator.resetRemoteCommits')">
+                <span class="icon">⚠️</span> 回退远程记录
+            </button>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
         <div class="section-title">🧹 清理</div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.cleanLocalBranches')">

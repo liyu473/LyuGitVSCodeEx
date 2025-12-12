@@ -73,6 +73,16 @@
         "command": "workflow-generator.addRemoteAndPush",
         "title": "推送到远程仓库",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.resetLocalCommits",
+        "title": "回退本地记录",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.resetRemoteCommits",
+        "title": "回退远程记录",
+        "category": "Workflow"
       }
     ],
     "menus": {
