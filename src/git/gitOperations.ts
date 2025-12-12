@@ -13,13 +13,18 @@ export class GitOperations {
         return folder;
     }
 
-    private async runGitCommand(command: string, timeout = 30000): Promise<string> {
+    private getGitTimeout(): number {
+        return vscode.workspace.getConfiguration('workflowGenerator.git').get('commandTimeout', 30000);
+    }
+
+    private async runGitCommand(command: string, timeout?: number): Promise<string> {
         const workspaceFolder = this.getWorkspaceFolder();
+        const actualTimeout = timeout ?? this.getGitTimeout();
 
         try {
             const { stdout } = await execAsync(command, { 
                 cwd: workspaceFolder.uri.fsPath,
-                timeout 
+                timeout: actualTimeout 
             });
             return stdout.trim();
         } catch (error: unknown) {

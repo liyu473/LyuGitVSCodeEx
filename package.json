@@ -113,6 +113,11 @@
         "command": "workflow-generator.addGitignore",
         "title": "添加 .gitignore",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.openSettings",
+        "title": "打开设置",
+        "category": "Workflow"
       }
     ],
     "menus": {
@@ -140,6 +145,39 @@
           "name": "工具面板"
         }
       ]
+    },
+    "configuration": {
+      "title": "Workflow Generator",
+      "properties": {
+        "workflowGenerator.network.retryCount": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "网络请求失败时的重试次数"
+        },
+        "workflowGenerator.network.timeout": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 5000,
+          "maximum": 60000,
+          "description": "网络请求超时时间（毫秒）"
+        },
+        "workflowGenerator.network.retryDelay": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "重试间隔时间（毫秒）"
+        },
+        "workflowGenerator.git.commandTimeout": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 120000,
+          "description": "Git 命令超时时间（毫秒）"
+        }
+      }
     }
   },
   "scripts": {

@@ -8,7 +8,21 @@ const execAsync = promisify(exec);
 const GITHUB_AUTH_PROVIDER_ID = 'github';
 const SCOPES = ['repo'];
 
+interface NetworkConfig {
+    retryCount: number;
+    timeout: number;
+    retryDelay: number;
+}
+
 export class GitHubHelper {
+    private getNetworkConfig(): NetworkConfig {
+        const config = vscode.workspace.getConfiguration('workflowGenerator.network');
+        return {
+            retryCount: config.get('retryCount', 3),
+            timeout: config.get('timeout', 15000),
+            retryDelay: config.get('retryDelay', 1500)
+        };
+    }
     private async getRepoUrl(): Promise<string | null> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) return null;
@@ -91,13 +105,14 @@ export class GitHubHelper {
         }
     }
 
-    private async githubRequest(method: string, path: string, token: string, body?: object, timeout = 15000): Promise<{ status: number; data: unknown }> {
+    private async githubRequest(method: string, path: string, token: string, body?: object, timeout?: number): Promise<{ status: number; data: unknown }> {
+        const actualTimeout = timeout ?? this.getNetworkConfig().timeout;
         return new Promise((resolve, reject) => {
             const options = {
                 hostname: 'api.github.com',
                 path,
                 method,
-                timeout,
+                timeout: actualTimeout,
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
@@ -119,7 +134,7 @@ export class GitHubHelper {
                 });
             });
 
-            req.setTimeout(timeout, () => {
+            req.setTimeout(actualTimeout, () => {
                 req.destroy();
                 reject(new Error('请求超时，请检查网络连接'));
             });
@@ -133,32 +148,7 @@ export class GitHubHelper {
         });
     }
 
-    // 带重试的请求
-    private async githubRequestWithRetry(
-        method: string,
-        path: string,
-        token: string,
-        body?: object,
-        maxRetries = 3
-    ): Promise<{ status: number; data: unknown }> {
-        let lastError: Error | null = null;
-        
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                return await this.githubRequest(method, path, token, body);
-            } catch (error) {
-                lastError = error as Error;
-                if (i < maxRetries - 1) {
-                    // 等待后重试
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-                }
-            }
-        }
-        
-        throw lastError;
-    }
-
-    // 带加载提示的 API 请求
+    // 带加载提示的 API 请求（使用配置的重试策略）
     private async githubRequestWithProgress<T>(
         title: string,
         method: string,
@@ -166,6 +156,8 @@ export class GitHubHelper {
         token: string,
         body?: object
     ): Promise<{ status: number; data: T } | null> {
+        const config = this.getNetworkConfig();
+        
         try {
             return await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title, cancellable: true },
@@ -176,17 +168,17 @@ export class GitHubHelper {
                     });
                     
                     let lastError: Error | null = null;
-                    for (let i = 0; i < 3; i++) {
+                    for (let i = 0; i < config.retryCount; i++) {
                         if (cancelled) throw new Error('已取消');
                         
                         try {
-                            progress.report({ message: i > 0 ? `重试中 (${i}/3)...` : undefined });
+                            progress.report({ message: i > 0 ? `重试中 (${i}/${config.retryCount})...` : undefined });
                             const result = await this.githubRequest(method, path, token, body);
                             return result as { status: number; data: T };
                         } catch (error) {
                             lastError = error as Error;
-                            if (i < 2) {
-                                await new Promise(resolve => setTimeout(resolve, 1500));
+                            if (i < config.retryCount - 1) {
+                                await new Promise(resolve => setTimeout(resolve, config.retryDelay));
                             }
                         }
                     }

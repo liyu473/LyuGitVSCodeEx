@@ -234,6 +234,18 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
+    <div class="section" id="sec-settings">
+        <div class="section-header" onclick="toggle('sec-settings')">
+            <span class="chevron">▼</span>
+            <span class="section-title">⚙️ 设置</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn" data-cmd="workflow-generator.openSettings" onclick="exec(this)" title="打开扩展设置页面，可配置：网络请求重试次数、超时时间、重试间隔、Git 命令超时时间等">
+                <span class="spinner"></span><span class="icon">🔧</span> 网络与超时设置
+            </button>
+        </div>
+    </div>
+
     <script>
         const vscode = acquireVsCodeApi();
         const state = vscode.getState() || {};

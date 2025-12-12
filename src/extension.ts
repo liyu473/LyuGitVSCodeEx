@@ -156,6 +156,13 @@ export function activate(context: vscode.ExtensionContext) {
             await gitOps.addGitignore();
         })
     );
+
+    // 打开设置
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.openSettings', async () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'workflowGenerator');
+        })
+    );
 }
 
 export function deactivate() {}
