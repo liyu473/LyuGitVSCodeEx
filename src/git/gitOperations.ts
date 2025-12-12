@@ -13,14 +13,20 @@ export class GitOperations {
         return folder;
     }
 
-    private async runGitCommand(command: string): Promise<string> {
+    private async runGitCommand(command: string, timeout = 30000): Promise<string> {
         const workspaceFolder = this.getWorkspaceFolder();
 
         try {
-            const { stdout } = await execAsync(command, { cwd: workspaceFolder.uri.fsPath });
+            const { stdout } = await execAsync(command, { 
+                cwd: workspaceFolder.uri.fsPath,
+                timeout 
+            });
             return stdout.trim();
         } catch (error: unknown) {
-            const err = error as { stderr?: string; message?: string };
+            const err = error as { stderr?: string; message?: string; killed?: boolean };
+            if (err.killed) {
+                throw new Error('操作超时，请检查网络连接');
+            }
             throw new Error(err.stderr || err.message || 'Unknown error');
         }
     }
