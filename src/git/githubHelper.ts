@@ -91,12 +91,13 @@ export class GitHubHelper {
         }
     }
 
-    private async githubRequest(method: string, path: string, token: string, body?: object): Promise<{ status: number; data: unknown }> {
+    private async githubRequest(method: string, path: string, token: string, body?: object, timeout = 15000): Promise<{ status: number; data: unknown }> {
         return new Promise((resolve, reject) => {
             const options = {
                 hostname: 'api.github.com',
                 path,
                 method,
+                timeout,
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
@@ -118,10 +119,50 @@ export class GitHubHelper {
                 });
             });
 
-            req.on('error', reject);
+            req.setTimeout(timeout, () => {
+                req.destroy();
+                reject(new Error('请求超时，请检查网络连接'));
+            });
+
+            req.on('error', (err) => {
+                reject(new Error(`网络错误: ${err.message}`));
+            });
+            
             if (body) req.write(JSON.stringify(body));
             req.end();
         });
+    }
+
+    // 带加载提示的 API 请求
+    private async githubRequestWithProgress<T>(
+        title: string,
+        method: string,
+        path: string,
+        token: string,
+        body?: object
+    ): Promise<{ status: number; data: T } | null> {
+        try {
+            return await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title, cancellable: true },
+                async (_, cancelToken) => {
+                    return new Promise((resolve, reject) => {
+                        cancelToken.onCancellationRequested(() => {
+                            reject(new Error('已取消'));
+                        });
+                        
+                        this.githubRequest(method, path, token, body)
+                            .then(result => resolve(result as { status: number; data: T }))
+                            .catch(reject);
+                    });
+                }
+            );
+        } catch (error: unknown) {
+            const msg = (error as Error).message;
+            if (msg !== '已取消') {
+                vscode.window.showErrorMessage(msg);
+            }
+            return null;
+        }
     }
 
     async manageSecrets(): Promise<void> {
@@ -168,14 +209,17 @@ export class GitHubHelper {
     }
 
     private async listSecrets(token: string, owner: string, repo: string): Promise<void> {
-        const { status, data } = await this.githubRequest('GET', `/repos/${owner}/${repo}/actions/secrets`, token);
+        const result = await this.githubRequestWithProgress<{ secrets: { name: string; updated_at: string }[] }>(
+            '正在获取 Secrets...',
+            'GET', `/repos/${owner}/${repo}/actions/secrets`, token
+        );
         
-        if (status !== 200) {
-            vscode.window.showErrorMessage('获取 Secrets 失败，请确认有仓库管理权限');
+        if (!result || result.status !== 200) {
+            if (result) vscode.window.showErrorMessage('获取 Secrets 失败，请确认有仓库管理权限');
             return;
         }
 
-        const secrets = (data as { secrets: { name: string; updated_at: string }[] }).secrets;
+        const secrets = result.data.secrets;
         if (secrets.length === 0) {
             vscode.window.showInformationMessage('暂无 Secrets');
             return;
@@ -200,26 +244,30 @@ export class GitHubHelper {
         if (!value) return;
 
         // 获取公钥
-        const { status: keyStatus, data: keyData } = await this.githubRequest(
+        const keyResult = await this.githubRequestWithProgress<{ key: string; key_id: string }>(
+            '正在获取公钥...',
             'GET', `/repos/${owner}/${repo}/actions/secrets/public-key`, token
         );
 
-        if (keyStatus !== 200) {
-            vscode.window.showErrorMessage('获取公钥失败');
+        if (!keyResult || keyResult.status !== 200) {
+            if (keyResult) vscode.window.showErrorMessage('获取公钥失败');
             return;
         }
 
-        const { key, key_id } = keyData as { key: string; key_id: string };
+        const { key, key_id } = keyResult.data;
 
         // 加密 secret（使用 tweetnacl）
         const encryptedValue = await this.encryptSecret(value, key);
 
-        const { status } = await this.githubRequest(
+        const result = await this.githubRequestWithProgress<unknown>(
+            '正在创建 Secret...',
             'PUT', `/repos/${owner}/${repo}/actions/secrets/${name}`, token,
             { encrypted_value: encryptedValue, key_id }
         );
 
-        if (status === 201 || status === 204) {
+        if (!result) return;
+
+        if (result.status === 201 || result.status === 204) {
             vscode.window.showInformationMessage(`Secret "${name}" 已创建/更新`);
         } else {
             vscode.window.showErrorMessage('创建 Secret 失败');
@@ -267,16 +315,7 @@ export class GitHubHelper {
         const { owner, repo } = parsed;
 
         // 获取工作流运行记录
-        const { status, data } = await this.githubRequest(
-            'GET', `/repos/${owner}/${repo}/actions/runs?per_page=30`, token
-        );
-
-        if (status !== 200) {
-            vscode.window.showErrorMessage('获取 Actions 记录失败');
-            return;
-        }
-
-        const runs = (data as { workflow_runs: Array<{
+        type WorkflowRun = {
             id: number;
             name: string;
             head_branch: string;
@@ -284,7 +323,19 @@ export class GitHubHelper {
             status: string;
             created_at: string;
             run_number: number;
-        }> }).workflow_runs;
+        };
+        
+        const result = await this.githubRequestWithProgress<{ workflow_runs: WorkflowRun[] }>(
+            '正在获取 Actions 记录...',
+            'GET', `/repos/${owner}/${repo}/actions/runs?per_page=30`, token
+        );
+
+        if (!result || result.status !== 200) {
+            if (result) vscode.window.showErrorMessage('获取 Actions 记录失败');
+            return;
+        }
+
+        const runs = result.data.workflow_runs;
 
         if (runs.length === 0) {
             vscode.window.showInformationMessage('没有 Actions 运行记录');
@@ -337,14 +388,17 @@ export class GitHubHelper {
     }
 
     private async deleteSecret(token: string, owner: string, repo: string): Promise<void> {
-        const { status, data } = await this.githubRequest('GET', `/repos/${owner}/${repo}/actions/secrets`, token);
+        const result = await this.githubRequestWithProgress<{ secrets: { name: string }[] }>(
+            '正在获取 Secrets...',
+            'GET', `/repos/${owner}/${repo}/actions/secrets`, token
+        );
         
-        if (status !== 200) {
-            vscode.window.showErrorMessage('获取 Secrets 失败');
+        if (!result || result.status !== 200) {
+            if (result) vscode.window.showErrorMessage('获取 Secrets 失败');
             return;
         }
 
-        const secrets = (data as { secrets: { name: string }[] }).secrets;
+        const secrets = result.data.secrets;
         if (secrets.length === 0) {
             vscode.window.showInformationMessage('暂无 Secrets');
             return;
@@ -363,11 +417,14 @@ export class GitHubHelper {
         );
         if (confirm !== '确定删除') return;
 
-        const { status: delStatus } = await this.githubRequest(
+        const delResult = await this.githubRequestWithProgress<unknown>(
+            '正在删除...',
             'DELETE', `/repos/${owner}/${repo}/actions/secrets/${selected}`, token
         );
 
-        if (delStatus === 204) {
+        if (!delResult) return;
+
+        if (delResult.status === 204) {
             vscode.window.showInformationMessage(`Secret "${selected}" 已删除`);
         } else {
             vscode.window.showErrorMessage('删除失败');
