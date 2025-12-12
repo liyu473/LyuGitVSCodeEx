@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = 'workflowWebview';
+    public static readonly viewType = 'lyugitexWebview';
     private _view?: vscode.WebviewView;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
@@ -129,10 +129,10 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🚀 快速开始</span>
         </div>
         <div class="btn-group">
-            <button class="btn btn-primary" data-cmd="workflow-generator.initRepo" onclick="exec(this)" title="在当前文件夹初始化一个新的 Git 仓库，可选择默认分支名称（main/master），并可选创建 .gitignore 文件">
+            <button class="btn btn-primary" data-cmd="lyugitex.initRepo" onclick="exec(this)" title="在当前文件夹初始化一个新的 Git 仓库，可选择默认分支名称（main/master），并可选创建 .gitignore 文件">
                 <span class="spinner"></span><span class="icon">📁</span> 初始化 Git 仓库
             </button>
-            <button class="btn btn-primary" data-cmd="workflow-generator.addRemoteAndPush" onclick="exec(this)" title="将本地仓库推送到远程（如 GitHub）。如果没有配置远程地址会提示输入，如果没有提交会自动创建首次提交">
+            <button class="btn btn-primary" data-cmd="lyugitex.addRemoteAndPush" onclick="exec(this)" title="将本地仓库推送到远程（如 GitHub）。如果没有配置远程地址会提示输入，如果没有提交会自动创建首次提交">
                 <span class="spinner"></span><span class="icon">☁️</span> 推送到远程仓库
             </button>
         </div>
@@ -144,19 +144,19 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">⚙️ 工作流</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.generateReleaseYml" onclick="exec(this)" title="为 C#/.NET 项目生成 GitHub Actions 的 release.yml 工作流。支持自动检测 .NET 版本、发布到 NuGet（类库）、生成 ZIP（应用程序）、Dry-run 测试模式">
+            <button class="btn" data-cmd="lyugitex.generateReleaseYml" onclick="exec(this)" title="为 C#/.NET 项目生成 GitHub Actions 的 release.yml 工作流。支持自动检测 .NET 版本、发布到 NuGet（类库）、生成 ZIP（应用程序）、Dry-run 测试模式">
                 <span class="spinner"></span><span class="icon">📄</span> C#/.NET 工作流
             </button>
-            <button class="btn" data-cmd="workflow-generator.generateVscodeExtYml" onclick="exec(this)" title="为 VS Code 扩展项目生成发布工作流。支持打包 .vsix 文件、发布到 VS Code Marketplace。需要配置 VSCE_PAT Secret">
+            <button class="btn" data-cmd="lyugitex.generateVscodeExtYml" onclick="exec(this)" title="为 VS Code 扩展项目生成发布工作流。支持打包 .vsix 文件、发布到 VS Code Marketplace。需要配置 VSCE_PAT Secret">
                 <span class="spinner"></span><span class="icon">🧩</span> VS Code 扩展工作流
             </button>
-            <button class="btn" data-cmd="workflow-generator.manageSecrets" onclick="exec(this)" title="管理 GitHub 仓库的 Secrets（如 NUGET_API_KEY）。使用 GitHub OAuth 登录，登录一次后会话保持无需重复登录，可添加、修改、删除 Secrets">
+            <button class="btn" data-cmd="lyugitex.manageSecrets" onclick="exec(this)" title="管理 GitHub 仓库的 Secrets（如 NUGET_API_KEY）。使用 GitHub OAuth 登录，登录一次后会话保持无需重复登录，可添加、修改、删除 Secrets">
                 <span class="spinner"></span><span class="icon">🔑</span> 管理 GitHub Secrets
             </button>
-            <button class="btn" data-cmd="workflow-generator.openActions" onclick="exec(this)" title="在浏览器中打开当前仓库的 GitHub Actions 页面，查看工作流运行状态和日志">
+            <button class="btn" data-cmd="lyugitex.openActions" onclick="exec(this)" title="在浏览器中打开当前仓库的 GitHub Actions 页面，查看工作流运行状态和日志">
                 <span class="spinner"></span><span class="icon">▶️</span> 打开 Actions 页面
             </button>
-            <button class="btn btn-danger" data-cmd="workflow-generator.deleteWorkflowRuns" onclick="exec(this)" title="获取最近 30 条 Actions 运行记录，可多选删除。显示状态（✅成功/❌失败/🔄进行中）、运行编号、分支和时间">
+            <button class="btn btn-danger" data-cmd="lyugitex.deleteWorkflowRuns" onclick="exec(this)" title="获取最近 30 条 Actions 运行记录，可多选删除。显示状态（✅成功/❌失败/🔄进行中）、运行编号、分支和时间">
                 <span class="spinner"></span><span class="icon">🗑️</span> 删除 Actions 记录
             </button>
         </div>
@@ -168,7 +168,7 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">📋 项目配置</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.addGitignore" onclick="exec(this)" title="添加 .gitignore 文件，支持多种模板（VS/C#、Node、Python、Unity、JetBrains、macOS、Windows）。已有文件会追加内容。还可清理已被 Git 跟踪的忽略文件（如已提交的 .idea 文件夹）">
+            <button class="btn" data-cmd="lyugitex.addGitignore" onclick="exec(this)" title="添加 .gitignore 文件，支持多种模板（VS/C#、Node、Python、Unity、JetBrains、macOS、Windows）。已有文件会追加内容。还可清理已被 Git 跟踪的忽略文件（如已提交的 .idea 文件夹）">
                 <span class="spinner"></span><span class="icon">📝</span> 添加 .gitignore
             </button>
         </div>
@@ -180,10 +180,10 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🔄 多仓库同步</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.manageRemotes" onclick="exec(this)" title="管理多个远程仓库（如 GitHub、Gitee、GitLab）。可以添加、查看、修改、删除远程仓库配置">
+            <button class="btn" data-cmd="lyugitex.manageRemotes" onclick="exec(this)" title="管理多个远程仓库（如 GitHub、Gitee、GitLab）。可以添加、查看、修改、删除远程仓库配置">
                 <span class="spinner"></span><span class="icon">📋</span> 管理远程仓库
             </button>
-            <button class="btn btn-primary" data-cmd="workflow-generator.syncToRemotes" onclick="exec(this)" title="将当前仓库同步到所有配置的远程仓库。会推送所有分支和所有 Tags。可选择同步到单个或所有远程仓库">
+            <button class="btn btn-primary" data-cmd="lyugitex.syncToRemotes" onclick="exec(this)" title="将当前仓库同步到所有配置的远程仓库。会推送所有分支和所有 Tags。可选择同步到单个或所有远程仓库">
                 <span class="spinner"></span><span class="icon">🔄</span> 同步到远程仓库
             </button>
         </div>
@@ -195,16 +195,16 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🏷️ Tag 管理</span>
         </div>
         <div class="btn-group">
-            <button class="btn btn-primary" data-cmd="workflow-generator.createTag" onclick="exec(this)" title="创建新的 Git Tag。可输入 Tag 名称（如 v1.0.0）和说明。留空说明创建轻量 Tag，填写说明创建附注 Tag。创建后可选择是否推送到远程">
+            <button class="btn btn-primary" data-cmd="lyugitex.createTag" onclick="exec(this)" title="创建新的 Git Tag。可输入 Tag 名称（如 v1.0.0）和说明。留空说明创建轻量 Tag，填写说明创建附注 Tag。创建后可选择是否推送到远程">
                 <span class="spinner"></span><span class="icon">➕</span> 创建 Tag
             </button>
-            <button class="btn" data-cmd="workflow-generator.deleteLatestTag" onclick="exec(this)" title="快速删除最新的 Git Tag。可选择只删除本地，或同时删除本地和远程的 Tag">
+            <button class="btn" data-cmd="lyugitex.deleteLatestTag" onclick="exec(this)" title="快速删除最新的 Git Tag。可选择只删除本地，或同时删除本地和远程的 Tag">
                 <span class="spinner"></span><span class="icon">🗑️</span> 删除最新 Tag
             </button>
-            <button class="btn" data-cmd="workflow-generator.deleteLocalTag" onclick="exec(this)" title="列出所有本地 Tag，可多选删除。只影响本地，不会删除远程的 Tag">
+            <button class="btn" data-cmd="lyugitex.deleteLocalTag" onclick="exec(this)" title="列出所有本地 Tag，可多选删除。只影响本地，不会删除远程的 Tag">
                 <span class="spinner"></span><span class="icon">📍</span> 删除本地 Tag
             </button>
-            <button class="btn btn-danger" data-cmd="workflow-generator.deleteRemoteTag" onclick="exec(this)" title="⚠️ 列出远程仓库的所有 Tag，可多选删除。此操作会从 GitHub 等远程仓库删除 Tag，不可撤销">
+            <button class="btn btn-danger" data-cmd="lyugitex.deleteRemoteTag" onclick="exec(this)" title="⚠️ 列出远程仓库的所有 Tag，可多选删除。此操作会从 GitHub 等远程仓库删除 Tag，不可撤销">
                 <span class="spinner"></span><span class="icon">🌐</span> 删除远程 Tag
             </button>
         </div>
@@ -216,10 +216,10 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">⏪ 回退记录</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.resetLocalCommits" onclick="exec(this)" title="选择一个历史提交回退到该状态。软回退：保留修改在暂存区；混合回退：保留修改但不暂存；硬回退：丢弃所有修改。回退后可用「恢复记录」找回">
+            <button class="btn" data-cmd="lyugitex.resetLocalCommits" onclick="exec(this)" title="选择一个历史提交回退到该状态。软回退：保留修改在暂存区；混合回退：保留修改但不暂存；硬回退：丢弃所有修改。回退后可用「恢复记录」找回">
                 <span class="spinner"></span><span class="icon">↩️</span> 回退本地记录
             </button>
-            <button class="btn btn-danger" data-cmd="workflow-generator.resetRemoteCommits" onclick="exec(this)" title="⚠️ 危险！选择一个历史提交，将本地和远程都回退到该状态（force push）。适用于撤销已推送的错误提交">
+            <button class="btn btn-danger" data-cmd="lyugitex.resetRemoteCommits" onclick="exec(this)" title="⚠️ 危险！选择一个历史提交，将本地和远程都回退到该状态（force push）。适用于撤销已推送的错误提交">
                 <span class="spinner"></span><span class="icon">⚠️</span> 回退远程记录
             </button>
         </div>
@@ -231,10 +231,10 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🗑️ 删除记录</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.deleteLocalCommits" onclick="exec(this)" title="删除最近 N 个本地提交。与回退的区别：回退是选择回退到哪个提交，删除是选择删除几个。软删除保留修改在暂存区方便重新提交，硬删除彻底丢弃">
+            <button class="btn" data-cmd="lyugitex.deleteLocalCommits" onclick="exec(this)" title="删除最近 N 个本地提交。与回退的区别：回退是选择回退到哪个提交，删除是选择删除几个。软删除保留修改在暂存区方便重新提交，硬删除彻底丢弃">
                 <span class="spinner"></span><span class="icon">📍</span> 删除本地记录
             </button>
-            <button class="btn btn-danger" data-cmd="workflow-generator.deleteRemoteCommits" onclick="exec(this)" title="⚠️ 危险！删除远程最近 N 个提交。可选择：保留本地修改（文件改动留在暂存区）或同时删除本地。选错了可用「恢复记录」找回本地状态">
+            <button class="btn btn-danger" data-cmd="lyugitex.deleteRemoteCommits" onclick="exec(this)" title="⚠️ 危险！删除远程最近 N 个提交。可选择：保留本地修改（文件改动留在暂存区）或同时删除本地。选错了可用「恢复记录」找回本地状态">
                 <span class="spinner"></span><span class="icon">🌐</span> 删除远程记录
             </button>
         </div>
@@ -246,7 +246,7 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🔄 恢复</span>
         </div>
         <div class="btn-group">
-            <button class="btn btn-primary" data-cmd="workflow-generator.recoverCommits" onclick="exec(this)" title="使用 Git reflog 恢复之前的状态。Reflog 记录本地 HEAD 的所有移动历史（保留90天）。可恢复回退/删除后的状态、误操作 reset --hard 后的状态。注意：reflog 只存本地，与云端无关">
+            <button class="btn btn-primary" data-cmd="lyugitex.recoverCommits" onclick="exec(this)" title="使用 Git reflog 恢复之前的状态。Reflog 记录本地 HEAD 的所有移动历史（保留90天）。可恢复回退/删除后的状态、误操作 reset --hard 后的状态。注意：reflog 只存本地，与云端无关">
                 <span class="spinner"></span><span class="icon">♻️</span> 恢复记录 (reflog)
             </button>
         </div>
@@ -258,7 +258,7 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">⚙️ 设置</span>
         </div>
         <div class="btn-group">
-            <button class="btn" data-cmd="workflow-generator.openSettings" onclick="exec(this)" title="打开扩展设置页面，可配置：网络请求重试次数、超时时间、重试间隔、Git 命令超时时间等">
+            <button class="btn" data-cmd="lyugitex.openSettings" onclick="exec(this)" title="打开扩展设置页面，可配置：网络请求重试次数、超时时间、重试间隔、Git 命令超时时间等">
                 <span class="spinner"></span><span class="icon">🔧</span> 网络与超时设置
             </button>
         </div>

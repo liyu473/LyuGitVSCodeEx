@@ -116,7 +116,7 @@ export class GitHubHelper {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
-                    'User-Agent': 'VSCode-Workflow-Generator',
+                    'User-Agent': 'VSCode-LyuGitEx',
                     'X-GitHub-Api-Version': '2022-11-28',
                     ...(body ? { 'Content-Type': 'application/json' } : {})
                 }

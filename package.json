@@ -1,5 +1,5 @@
 {
-  "name": "LyuGitEx",
+  "name": "lyugitex",
   "displayName": "LyuGitEx",
   "description": "快速生成 CI/CD 工作流和 Git 操作工具",
   "version": "0.0.2",
@@ -20,177 +20,177 @@
   "contributes": {
     "commands": [
       {
-        "command": "workflow-generator.generateReleaseYml",
+        "command": "lyugitex.generateReleaseYml",
         "title": "生成 Release.yml (C#/.NET)",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.generateVscodeExtYml",
+        "command": "lyugitex.generateVscodeExtYml",
         "title": "生成 Release.yml (VS Code 扩展)",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.createTag",
+        "command": "lyugitex.createTag",
         "title": "创建 Tag",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteLatestTag",
+        "command": "lyugitex.deleteLatestTag",
         "title": "删除最新 Tag",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.gitPull",
+        "command": "lyugitex.gitPull",
         "title": "Git Pull",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.gitPush",
+        "command": "lyugitex.gitPush",
         "title": "Git Push",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteLocalTag",
+        "command": "lyugitex.deleteLocalTag",
         "title": "删除本地 Tag",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteRemoteTag",
+        "command": "lyugitex.deleteRemoteTag",
         "title": "删除远程 Tag",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.cleanLocalBranches",
+        "command": "lyugitex.cleanLocalBranches",
         "title": "清理本地已合并分支",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.manageSecrets",
+        "command": "lyugitex.manageSecrets",
         "title": "管理 GitHub Secrets",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.openSecrets",
+        "command": "lyugitex.openSecrets",
         "title": "打开 Secrets 页面",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.openActions",
+        "command": "lyugitex.openActions",
         "title": "打开 Actions 页面",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteWorkflowRuns",
+        "command": "lyugitex.deleteWorkflowRuns",
         "title": "删除 Actions 记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.initRepo",
+        "command": "lyugitex.initRepo",
         "title": "初始化 Git 仓库",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.addRemoteAndPush",
+        "command": "lyugitex.addRemoteAndPush",
         "title": "推送到远程仓库",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.resetLocalCommits",
+        "command": "lyugitex.resetLocalCommits",
         "title": "回退本地记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.resetRemoteCommits",
+        "command": "lyugitex.resetRemoteCommits",
         "title": "回退远程记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteLocalCommits",
+        "command": "lyugitex.deleteLocalCommits",
         "title": "删除本地记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.deleteRemoteCommits",
+        "command": "lyugitex.deleteRemoteCommits",
         "title": "删除远程记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.recoverCommits",
+        "command": "lyugitex.recoverCommits",
         "title": "恢复记录",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.addGitignore",
+        "command": "lyugitex.addGitignore",
         "title": "添加 .gitignore",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.openSettings",
+        "command": "lyugitex.openSettings",
         "title": "打开设置",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.manageRemotes",
+        "command": "lyugitex.manageRemotes",
         "title": "管理远程仓库",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       },
       {
-        "command": "workflow-generator.syncToRemotes",
+        "command": "lyugitex.syncToRemotes",
         "title": "同步到远程仓库",
-        "category": "Workflow"
+        "category": "LyuGitEx"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "workflow-generator.generateReleaseYml",
-          "group": "workflow@1"
+          "command": "lyugitex.generateReleaseYml",
+          "group": "lyugitex@1"
         }
       ]
     },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "workflow-generator",
-          "title": "Workflow Generator",
+          "id": "lyugitex",
+          "title": "LyuGitEx",
           "icon": "resources/icon.svg"
         }
       ]
     },
     "views": {
-      "workflow-generator": [
+      "lyugitex": [
         {
           "type": "webview",
-          "id": "workflowWebview",
+          "id": "lyugitexWebview",
           "name": "工具面板"
         }
       ]
     },
     "configuration": {
-      "title": "Workflow Generator",
+      "title": "LyuGitEx",
       "properties": {
-        "workflowGenerator.network.retryCount": {
+        "lyugitex.network.retryCount": {
           "type": "number",
           "default": 3,
           "minimum": 1,
           "maximum": 10,
           "description": "网络请求失败时的重试次数"
         },
-        "workflowGenerator.network.timeout": {
+        "lyugitex.network.timeout": {
           "type": "number",
           "default": 15000,
           "minimum": 5000,
           "maximum": 60000,
           "description": "网络请求超时时间（毫秒）"
         },
-        "workflowGenerator.network.retryDelay": {
+        "lyugitex.network.retryDelay": {
           "type": "number",
           "default": 1500,
           "minimum": 500,
           "maximum": 10000,
           "description": "重试间隔时间（毫秒）"
         },
-        "workflowGenerator.git.commandTimeout": {
+        "lyugitex.git.commandTimeout": {
           "type": "number",
           "default": 30000,
           "minimum": 5000,
