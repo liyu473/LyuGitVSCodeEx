@@ -32,28 +32,18 @@ export class VSCodeExtGenerator {
 
         if (!publishChoice) return;
 
-        // 询问是否需要 dry-run
-        const dryRun = await vscode.window.showQuickPick([
-            { label: '正常发布', value: false },
-            { label: '测试模式（Dry-run）', description: '只构建不发布', value: true }
-        ], { placeHolder: '选择模式' });
-
-        if (dryRun === undefined) return;
-
         const publishToMarketplace = publishChoice.value === 'marketplace' || publishChoice.value === 'both';
         const createVsix = publishChoice.value === 'package' || publishChoice.value === 'both';
 
         await this.createWorkflow(workspaceFolder.uri.fsPath, {
             publishToMarketplace,
-            createVsix,
-            hasDryRun: true
+            createVsix
         });
     }
 
     private async createWorkflow(rootPath: string, config: {
         publishToMarketplace: boolean;
         createVsix: boolean;
-        hasDryRun: boolean;
     }): Promise<void> {
         const githubDir = path.join(rootPath, '.github', 'workflows');
         if (!fs.existsSync(githubDir)) {
@@ -78,10 +68,24 @@ export class VSCodeExtGenerator {
         if (config.publishToMarketplace) {
             publishSteps += `
       - name: Publish to VS Code Marketplace
-        if: startsWith(github.ref, 'refs/tags/') && !inputs.dry_run
+        if: startsWith(github.ref, 'refs/tags/')
         run: npx vsce publish -p \${{ secrets.VSCE_PAT }}
 `;
         }
+
+        // 只有发布到 Marketplace 时才需要 dry-run 选项
+        const workflowDispatch = config.publishToMarketplace 
+            ? `  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '测试模式（只构建不发布）'
+        type: boolean
+        default: false`
+            : `  workflow_dispatch:`;
+
+        const releaseCondition = config.publishToMarketplace
+            ? `if: startsWith(github.ref, 'refs/tags/') && !inputs.dry_run`
+            : `if: startsWith(github.ref, 'refs/tags/')`;
 
         const ymlContent = `name: Release VS Code Extension
 
@@ -89,12 +93,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: '测试模式（只构建不发布）'
-        type: boolean
-        default: false
+${workflowDispatch}
 
 permissions:
   contents: write
@@ -121,7 +120,7 @@ jobs:
 ${publishSteps}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && !inputs.dry_run
+        ${releaseCondition}
         with:
           files: "*.vsix"
           generate_release_notes: true
