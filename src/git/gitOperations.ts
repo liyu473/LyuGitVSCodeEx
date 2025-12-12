@@ -17,6 +17,14 @@ export class GitOperations {
         return vscode.workspace.getConfiguration('workflowGenerator.git').get('commandTimeout', 30000);
     }
 
+    private getNetworkConfig() {
+        const config = vscode.workspace.getConfiguration('workflowGenerator.network');
+        return {
+            retryCount: config.get('retryCount', 3) as number,
+            retryDelay: config.get('retryDelay', 1500) as number
+        };
+    }
+
     private async runGitCommand(command: string, timeout?: number): Promise<string> {
         const workspaceFolder = this.getWorkspaceFolder();
         const actualTimeout = timeout ?? this.getGitTimeout();
@@ -34,6 +42,30 @@ export class GitOperations {
             }
             throw new Error(err.stderr || err.message || 'Unknown error');
         }
+    }
+
+    // 带重试的 Git 命令（用于网络操作如 push/pull）
+    private async runGitCommandWithRetry(command: string): Promise<string> {
+        const config = this.getNetworkConfig();
+        let lastError: Error | null = null;
+
+        for (let i = 0; i < config.retryCount; i++) {
+            try {
+                return await this.runGitCommand(command);
+            } catch (error) {
+                lastError = error as Error;
+                // 只对网络相关错误重试
+                const msg = lastError.message.toLowerCase();
+                if (msg.includes('timeout') || msg.includes('ssl') || msg.includes('network') || msg.includes('unable to access')) {
+                    if (i < config.retryCount - 1) {
+                        await new Promise(resolve => setTimeout(resolve, config.retryDelay));
+                        continue;
+                    }
+                }
+                throw lastError;
+            }
+        }
+        throw lastError;
     }
 
     async isGitRepo(): Promise<boolean> {
@@ -321,10 +353,10 @@ $RECYCLE.BIN/
                 { location: vscode.ProgressLocation.Notification, title: '推送到远程仓库...' },
                 async () => {
                     try {
-                        await this.runGitCommand('git push -u origin HEAD');
+                        await this.runGitCommandWithRetry('git push -u origin HEAD');
                     } catch {
                         // 如果失败，尝试强制推送（新仓库）
-                        await this.runGitCommand('git push -u origin HEAD --force');
+                        await this.runGitCommandWithRetry('git push -u origin HEAD --force');
                     }
                 }
             );
@@ -380,7 +412,7 @@ $RECYCLE.BIN/
 
             if (pushToRemote?.startsWith('是')) {
                 try {
-                    await this.runGitCommand(`git push origin "${tagName}"`);
+                    await this.runGitCommandWithRetry(`git push origin "${tagName}"`);
                     vscode.window.showInformationMessage(`✅ 已创建并推送 Tag: ${tagName}`);
                 } catch (error: unknown) {
                     vscode.window.showWarningMessage(`Tag 已创建，但推送失败: ${(error as Error).message}`);
@@ -412,8 +444,8 @@ $RECYCLE.BIN/
                 vscode.window.showInformationMessage(`已删除本地 Tag: ${latestTag}`);
             } else if (confirm === '删除本地和远程') {
                 await this.runGitCommand(`git tag -d ${latestTag}`);
-                await this.runGitCommand(`git push origin :refs/tags/${latestTag}`);
-                vscode.window.showInformationMessage(`已删除本地和远程 Tag: ${latestTag}`);
+                await this.runGitCommandWithRetry(`git push origin :refs/tags/${latestTag}`);
+                vscode.window.showInformationMessage(`✅ 已删除本地和远程 Tag: ${latestTag}`);
             }
         } catch (error: unknown) {
             vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
@@ -447,11 +479,11 @@ $RECYCLE.BIN/
                 { location: vscode.ProgressLocation.Notification, title: 'Git Push...' },
                 async () => {
                     if (pushTags === '推送代码和 Tags') {
-                        await this.runGitCommand('git push --follow-tags');
+                        await this.runGitCommandWithRetry('git push --follow-tags');
                     } else {
-                        await this.runGitCommand('git push');
+                        await this.runGitCommandWithRetry('git push');
                     }
-                    vscode.window.showInformationMessage('Push 完成');
+                    vscode.window.showInformationMessage('✅ Push 完成');
                 }
             );
         } catch (error: unknown) {
@@ -486,7 +518,7 @@ $RECYCLE.BIN/
 
     async deleteRemoteTag(): Promise<void> {
         try {
-            const tags = await this.runGitCommand('git ls-remote --tags origin');
+            const tags = await this.runGitCommandWithRetry('git ls-remote --tags origin');
             if (!tags) {
                 vscode.window.showWarningMessage('没有远程 Tag');
                 return;
@@ -512,15 +544,19 @@ $RECYCLE.BIN/
 
             if (confirm !== '确定删除') return;
 
+            const config = this.getNetworkConfig();
             await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title: '删除远程 Tags...' },
-                async () => {
+                async (progress) => {
+                    let deleted = 0;
                     for (const tag of selected) {
-                        await this.runGitCommand(`git push origin :refs/tags/${tag}`);
+                        progress.report({ message: `${tag} (${deleted + 1}/${selected.length})` });
+                        await this.runGitCommandWithRetry(`git push origin :refs/tags/${tag}`);
+                        deleted++;
                     }
                 }
             );
-            vscode.window.showInformationMessage(`已删除 ${selected.length} 个远程 Tag`);
+            vscode.window.showInformationMessage(`✅ 已删除 ${selected.length} 个远程 Tag`);
         } catch (error: unknown) {
             vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
         }
@@ -636,7 +672,7 @@ $RECYCLE.BIN/
                 { location: vscode.ProgressLocation.Notification, title: '正在回退...' },
                 async () => {
                     await this.runGitCommand(`git reset --hard ${selected.hash}`);
-                    await this.runGitCommand('git push --force');
+                    await this.runGitCommandWithRetry('git push --force');
                 }
             );
 
@@ -741,7 +777,7 @@ $RECYCLE.BIN/
                 async () => {
                     const mode = keepLocal.value === 'soft' ? '--soft' : '--hard';
                     await this.runGitCommand(`git reset ${mode} HEAD~${selected.value}`);
-                    await this.runGitCommand('git push --force');
+                    await this.runGitCommandWithRetry('git push --force');
                 }
             );
 
