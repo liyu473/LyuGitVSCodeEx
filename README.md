@@ -9,7 +9,7 @@ VS Code 扩展，提供 Git 操作增强和 GitHub Actions 工作流生成。
 - 推送到远程仓库（自动配置 remote）
 
 ### ⚙️ 工作流生成
-- **C#/.NET 工作流**: 自动检测 .NET 版本，支持 NuGet 发布、ZIP 打包、Dry-run 模式
+- **C#/.NET 工作流**: 自动检测 .NET 版本，支持 NuGet 发布、ZIP 打包
 - **VS Code 扩展工作流**: 打包 .vsix 或发布到 Marketplace
 - **GitHub Secrets 管理**: OAuth 登录，添加/修改/删除 Secrets
 - **Actions 记录管理**: 查看和删除工作流运行记录
@@ -30,11 +30,6 @@ VS Code 扩展，提供 Git 操作增强和 GitHub Actions 工作流生成。
 ### 📋 项目配置
 - 添加 .gitignore（多种模板）
 - 清理已跟踪的忽略文件
-
-## 使用
-
-1. 打开侧边栏 LyuGitEx 面板
-2. 或命令面板 (Ctrl+Shift+P) 输入 "LyuGitEx"
 
 ## 设置
 
