@@ -1,11 +1,15 @@
 {
-  "name": "workflow-generator",
-  "displayName": "Workflow Generator",
+  "name": "LyuGitEx",
+  "displayName": "GitEx",
   "description": "快速生成 CI/CD 工作流和 Git 操作工具",
   "version": "0.0.1",
-  "publisher": "your-publisher-name",
+  "publisher": "liyu473",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liyu473/LyuGitVSCodeEx.git"
+  },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
