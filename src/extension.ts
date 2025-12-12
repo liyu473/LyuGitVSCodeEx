@@ -135,6 +135,13 @@ export function activate(context: vscode.ExtensionContext) {
             await gitOps.recoverCommits();
         })
     );
+
+    // 添加 .gitignore
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.addGitignore', async () => {
+            await gitOps.addGitignore();
+        })
+    );
 }
 
 export function deactivate() {}

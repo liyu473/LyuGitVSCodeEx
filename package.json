@@ -98,6 +98,11 @@
         "command": "workflow-generator.recoverCommits",
         "title": "恢复记录",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.addGitignore",
+        "title": "添加 .gitignore",
+        "category": "Workflow"
       }
     ],
     "menus": {
