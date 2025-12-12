@@ -1,13 +1,14 @@
 {
   "name": "LyuGitEx",
-  "displayName": "GitEx",
+  "displayName": "LyuGitEx",
   "description": "快速生成 CI/CD 工作流和 Git 操作工具",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "liyu473",
   "repository": {
     "type": "git",
     "url": "https://github.com/liyu473/LyuGitVSCodeEx.git"
   },
+  "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.95.0"
   },
