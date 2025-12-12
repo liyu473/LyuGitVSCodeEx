@@ -324,6 +324,64 @@ $RECYCLE.BIN/
         }
     }
 
+    async createTag(): Promise<void> {
+        try {
+            // 检查是否有提交
+            try {
+                await this.runGitCommand('git rev-parse HEAD');
+            } catch {
+                vscode.window.showErrorMessage('没有提交记录，无法创建 Tag');
+                return;
+            }
+
+            const tagName = await vscode.window.showInputBox({
+                prompt: '输入 Tag 名称',
+                placeHolder: '例如: v1.0.0',
+                validateInput: (value) => {
+                    if (!value.trim()) return 'Tag 名称不能为空';
+                    if (value.includes(' ')) return 'Tag 名称不能包含空格';
+                    return null;
+                }
+            });
+
+            if (!tagName) return;
+
+            const message = await vscode.window.showInputBox({
+                prompt: '输入 Tag 说明（可选，留空创建轻量 Tag）',
+                placeHolder: '例如: Release version 1.0.0'
+            });
+
+            if (message === undefined) return;
+
+            if (message) {
+                // 创建附注 Tag
+                await this.runGitCommand(`git tag -a "${tagName}" -m "${message}"`);
+            } else {
+                // 创建轻量 Tag
+                await this.runGitCommand(`git tag "${tagName}"`);
+            }
+
+            // 询问是否推送到远程
+            const pushToRemote = await vscode.window.showQuickPick(
+                ['是，推送到远程', '否，仅创建本地 Tag'],
+                { placeHolder: '是否推送到远程仓库？' }
+            );
+
+            if (pushToRemote?.startsWith('是')) {
+                try {
+                    await this.runGitCommand(`git push origin "${tagName}"`);
+                    vscode.window.showInformationMessage(`✅ 已创建并推送 Tag: ${tagName}`);
+                } catch (error: unknown) {
+                    vscode.window.showWarningMessage(`Tag 已创建，但推送失败: ${(error as Error).message}`);
+                }
+            } else {
+                vscode.window.showInformationMessage(`✅ 已创建本地 Tag: ${tagName}`);
+            }
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`创建 Tag 失败: ${(error as Error).message}`);
+        }
+    }
+
     async deleteLatestTag(): Promise<void> {
         try {
             const latestTag = await this.runGitCommand('git describe --tags --abbrev=0');

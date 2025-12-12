@@ -144,6 +144,9 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">🏷️ Tag 管理</span>
         </div>
         <div class="btn-group">
+            <button class="btn btn-primary" onclick="exec('workflow-generator.createTag')" title="创建新的 Git Tag。可输入 Tag 名称（如 v1.0.0）和说明。留空说明创建轻量 Tag，填写说明创建附注 Tag。创建后可选择是否推送到远程">
+                <span class="icon">➕</span> 创建 Tag
+            </button>
             <button class="btn" onclick="exec('workflow-generator.deleteLatestTag')" title="快速删除最新的 Git Tag。可选择只删除本地，或同时删除本地和远程的 Tag">
                 <span class="icon">🗑️</span> 删除最新 Tag
             </button>

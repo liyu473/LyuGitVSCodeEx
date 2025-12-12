@@ -24,6 +24,13 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // 创建 Tag
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.createTag', async () => {
+            await gitOps.createTag();
+        })
+    );
+
     // 删除最新 Tag
     context.subscriptions.push(
         vscode.commands.registerCommand('workflow-generator.deleteLatestTag', async () => {

@@ -20,6 +20,11 @@
         "category": "Workflow"
       },
       {
+        "command": "workflow-generator.createTag",
+        "title": "创建 Tag",
+        "category": "Workflow"
+      },
+      {
         "command": "workflow-generator.deleteLatestTag",
         "title": "删除最新 Tag",
         "category": "Workflow"
