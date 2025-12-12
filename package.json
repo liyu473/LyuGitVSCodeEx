@@ -93,6 +93,11 @@
         "command": "workflow-generator.deleteRemoteCommits",
         "title": "删除远程记录",
         "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.recoverCommits",
+        "title": "恢复记录",
+        "category": "Workflow"
       }
     ],
     "menus": {

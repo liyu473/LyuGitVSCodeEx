@@ -128,6 +128,13 @@ export function activate(context: vscode.ExtensionContext) {
             await gitOps.deleteRemoteCommits();
         })
     );
+
+    // 恢复记录
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.recoverCommits', async () => {
+            await gitOps.recoverCommits();
+        })
+    );
 }
 
 export function deactivate() {}

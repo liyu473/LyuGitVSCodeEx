@@ -538,4 +538,46 @@ dist/
             vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
         }
     }
+
+    // 恢复记录（从 reflog 恢复）
+    async recoverCommits(): Promise<void> {
+        try {
+            const reflog = await this.runGitCommand('git reflog -20 --format="%h %gd %gs"');
+            if (!reflog) {
+                vscode.window.showWarningMessage('没有可恢复的记录');
+                return;
+            }
+
+            const entries = reflog.split('\n').map(line => {
+                const parts = line.split(' ');
+                const hash = parts[0];
+                const ref = parts[1];
+                const action = parts.slice(2).join(' ');
+                return { 
+                    label: action, 
+                    description: `${hash} (${ref})`,
+                    hash 
+                };
+            });
+
+            const selected = await vscode.window.showQuickPick(entries, {
+                placeHolder: '选择要恢复到的状态'
+            });
+
+            if (!selected) return;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `确定要恢复到 "${selected.label}" 吗？`,
+                { modal: true },
+                '确定恢复'
+            );
+
+            if (confirm !== '确定恢复') return;
+
+            await this.runGitCommand(`git reset --hard ${selected.hash}`);
+            vscode.window.showInformationMessage(`✅ 已恢复到: ${selected.label}`);
+        } catch (error: unknown) {
+            vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
+        }
+    }
 }
