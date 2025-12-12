@@ -145,7 +145,10 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
         <div class="btn-group">
             <button class="btn" data-cmd="workflow-generator.generateReleaseYml" onclick="exec(this)" title="为 C#/.NET 项目生成 GitHub Actions 的 release.yml 工作流。支持自动检测 .NET 版本、发布到 NuGet（类库）、生成 ZIP（应用程序）、Dry-run 测试模式">
-                <span class="spinner"></span><span class="icon">📄</span> 生成 Release.yml
+                <span class="spinner"></span><span class="icon">📄</span> C#/.NET 工作流
+            </button>
+            <button class="btn" data-cmd="workflow-generator.generateVscodeExtYml" onclick="exec(this)" title="为 VS Code 扩展项目生成发布工作流。支持打包 .vsix 文件、发布到 VS Code Marketplace。需要配置 VSCE_PAT Secret">
+                <span class="spinner"></span><span class="icon">🧩</span> VS Code 扩展工作流
             </button>
             <button class="btn" data-cmd="workflow-generator.manageSecrets" onclick="exec(this)" title="管理 GitHub 仓库的 Secrets（如 NUGET_API_KEY）。使用 GitHub OAuth 登录，登录一次后会话保持无需重复登录，可添加、修改、删除 Secrets">
                 <span class="spinner"></span><span class="icon">🔑</span> 管理 GitHub Secrets
@@ -167,6 +170,21 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         <div class="btn-group">
             <button class="btn" data-cmd="workflow-generator.addGitignore" onclick="exec(this)" title="添加 .gitignore 文件，支持多种模板（VS/C#、Node、Python、Unity、JetBrains、macOS、Windows）。已有文件会追加内容。还可清理已被 Git 跟踪的忽略文件（如已提交的 .idea 文件夹）">
                 <span class="spinner"></span><span class="icon">📝</span> 添加 .gitignore
+            </button>
+        </div>
+    </div>
+
+    <div class="section" id="sec-sync">
+        <div class="section-header" onclick="toggle('sec-sync')">
+            <span class="chevron">▼</span>
+            <span class="section-title">🔄 多仓库同步</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn" data-cmd="workflow-generator.manageRemotes" onclick="exec(this)" title="管理多个远程仓库（如 GitHub、Gitee、GitLab）。可以添加、查看、修改、删除远程仓库配置">
+                <span class="spinner"></span><span class="icon">📋</span> 管理远程仓库
+            </button>
+            <button class="btn btn-primary" data-cmd="workflow-generator.syncToRemotes" onclick="exec(this)" title="将当前仓库同步到所有配置的远程仓库。会推送所有分支和所有 Tags。可选择同步到单个或所有远程仓库">
+                <span class="spinner"></span><span class="icon">🔄</span> 同步到远程仓库
             </button>
         </div>
     </div>

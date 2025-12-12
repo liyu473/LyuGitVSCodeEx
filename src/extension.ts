@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { ReleaseYmlGenerator } from './generators/releaseYmlGenerator';
+import { VSCodeExtGenerator } from './generators/vscodeExtGenerator';
 import { GitOperations } from './git/gitOperations';
 import { GitHubHelper } from './git/githubHelper';
+import { RepoSync } from './git/repoSync';
 import { WorkflowWebviewProvider } from './views/webviewPanel';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -9,7 +11,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     const gitOps = new GitOperations();
     const releaseGenerator = new ReleaseYmlGenerator();
+    const vscodeExtGenerator = new VSCodeExtGenerator();
     const githubHelper = new GitHubHelper();
+    const repoSync = new RepoSync();
 
     // 注册 Webview 视图
     const webviewProvider = new WorkflowWebviewProvider(context.extensionUri);
@@ -21,6 +25,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('workflow-generator.generateReleaseYml', async () => {
             await releaseGenerator.generate();
+        })
+    );
+
+    // 生成 VS Code 扩展工作流
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.generateVscodeExtYml', async () => {
+            await vscodeExtGenerator.generate();
         })
     );
 
@@ -161,6 +172,20 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('workflow-generator.openSettings', async () => {
             vscode.commands.executeCommand('workbench.action.openSettings', 'workflowGenerator');
+        })
+    );
+
+    // 管理远程仓库
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.manageRemotes', async () => {
+            await repoSync.manageRemotes();
+        })
+    );
+
+    // 同步到远程仓库
+    context.subscriptions.push(
+        vscode.commands.registerCommand('workflow-generator.syncToRemotes', async () => {
+            await repoSync.syncToAll();
         })
     );
 }

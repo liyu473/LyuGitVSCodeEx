@@ -16,7 +16,12 @@
     "commands": [
       {
         "command": "workflow-generator.generateReleaseYml",
-        "title": "生成 Release.yml (NuGet)",
+        "title": "生成 Release.yml (C#/.NET)",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.generateVscodeExtYml",
+        "title": "生成 Release.yml (VS Code 扩展)",
         "category": "Workflow"
       },
       {
@@ -117,6 +122,16 @@
       {
         "command": "workflow-generator.openSettings",
         "title": "打开设置",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.manageRemotes",
+        "title": "管理远程仓库",
+        "category": "Workflow"
+      },
+      {
+        "command": "workflow-generator.syncToRemotes",
+        "title": "同步到远程仓库",
         "category": "Workflow"
       }
     ],
