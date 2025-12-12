@@ -488,7 +488,7 @@ dist/
         }
     }
 
-    // 删除远程记录（选择删除几个，本地和远程都删）
+    // 删除远程记录（选择删除几个）
     async deleteRemoteCommits(): Promise<void> {
         try {
             try {
@@ -512,13 +512,21 @@ dist/
             }
 
             const selected = await vscode.window.showQuickPick(options, {
-                placeHolder: `当前共 ${totalCommits} 个提交（本地和远程都会删除）`
+                placeHolder: `当前共 ${totalCommits} 个提交`
             });
 
             if (!selected) return;
 
+            // 选择是否保留本地修改
+            const keepLocal = await vscode.window.showQuickPick([
+                { label: '保留本地修改', description: '删除远程记录，但本地文件修改保留在暂存区', value: 'soft' },
+                { label: '同时删除本地', description: '本地和远程都删除，文件也恢复', value: 'hard' }
+            ], { placeHolder: '选择本地处理方式' });
+
+            if (!keepLocal) return;
+
             const confirm = await vscode.window.showWarningMessage(
-                `⚠️ 危险操作！\n\n将删除本地和远程的最近 ${selected.value} 个提交。\n\n确定要继续吗？`,
+                `⚠️ 危险操作！\n\n将删除远程的最近 ${selected.value} 个提交。\n${keepLocal.value === 'soft' ? '本地修改会保留在暂存区。' : '本地也会同步删除。'}\n\n确定要继续吗？`,
                 { modal: true },
                 '我了解风险，确定删除'
             );
@@ -528,12 +536,16 @@ dist/
             await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title: '正在删除...' },
                 async () => {
-                    await this.runGitCommand(`git reset --hard HEAD~${selected.value}`);
+                    const mode = keepLocal.value === 'soft' ? '--soft' : '--hard';
+                    await this.runGitCommand(`git reset ${mode} HEAD~${selected.value}`);
                     await this.runGitCommand('git push --force');
                 }
             );
 
-            vscode.window.showInformationMessage(`✅ 已删除本地和远程的 ${selected.value} 个提交`);
+            const msg = keepLocal.value === 'soft' 
+                ? `✅ 已删除远程 ${selected.value} 个提交，本地修改已保留在暂存区`
+                : `✅ 已删除本地和远程的 ${selected.value} 个提交`;
+            vscode.window.showInformationMessage(msg);
         } catch (error: unknown) {
             vscode.window.showErrorMessage(`操作失败: ${(error as Error).message}`);
         }

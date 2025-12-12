@@ -2,13 +2,10 @@ import * as vscode from 'vscode';
 
 export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'workflowWebview';
-    private _view?: vscode.WebviewView;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
     resolveWebviewView(webviewView: vscode.WebviewView) {
-        this._view = webviewView;
-
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
@@ -17,18 +14,8 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlContent();
 
         webviewView.webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                case 'executeCommand':
-                    vscode.commands.executeCommand(message.commandId);
-                    break;
-                case 'showInput':
-                    const result = await vscode.window.showInputBox({
-                        prompt: message.prompt,
-                        value: message.defaultValue,
-                        password: message.password
-                    });
-                    webviewView.webview.postMessage({ type: 'inputResult', id: message.id, value: result });
-                    break;
+            if (message.command === 'executeCommand') {
+                vscode.commands.executeCommand(message.commandId);
             }
         });
     }
@@ -40,105 +27,77 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
             color: var(--vscode-foreground);
-            padding: 12px;
+            padding: 8px;
         }
-        .section {
-            margin-bottom: 16px;
+        .section { margin-bottom: 4px; }
+        .section-header {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            user-select: none;
+        }
+        .section-header:hover {
+            background: var(--vscode-list-hoverBackground);
         }
         .section-title {
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             color: var(--vscode-descriptionForeground);
-            margin-bottom: 8px;
             letter-spacing: 0.5px;
+            flex: 1;
         }
+        .chevron {
+            font-size: 10px;
+            transition: transform 0.2s;
+            margin-right: 6px;
+        }
+        .section.collapsed .chevron { transform: rotate(-90deg); }
+        .section.collapsed .btn-group { display: none; }
         .btn-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
+            padding: 4px 0 8px 0;
         }
         .btn {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: var(--vscode-button-secondaryBackground);
             color: var(--vscode-button-secondaryForeground);
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             text-align: left;
             transition: background 0.15s;
         }
-        .btn:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
+        .btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
         .btn-primary {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
         }
-        .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-        .btn-danger {
-            background: var(--vscode-inputValidation-errorBackground);
-        }
-        .btn-danger:hover {
-            opacity: 0.9;
-        }
-        .icon {
-            width: 16px;
-            height: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .divider {
-            height: 1px;
-            background: var(--vscode-widget-border);
-            margin: 12px 0;
-        }
-        .status-bar {
-            padding: 8px;
-            background: var(--vscode-editor-background);
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 12px;
-        }
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--vscode-charts-green);
-        }
-        .status-dot.warning {
-            background: var(--vscode-charts-yellow);
-        }
-        .status-dot.error {
-            background: var(--vscode-charts-red);
-        }
+        .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
+        .btn-danger { background: var(--vscode-inputValidation-errorBackground); }
+        .btn-danger:hover { opacity: 0.9; }
+        .icon { width: 14px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="section">
-        <div class="section-title">🚀 快速开始</div>
+    <div class="section" id="sec-start">
+        <div class="section-header" onclick="toggle('sec-start')">
+            <span class="chevron">▼</span>
+            <span class="section-title">🚀 快速开始</span>
+        </div>
         <div class="btn-group">
             <button class="btn btn-primary" onclick="exec('workflow-generator.initRepo')">
                 <span class="icon">📁</span> 初始化 Git 仓库
@@ -149,10 +108,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">⚙️ 工作流</div>
+    <div class="section" id="sec-workflow">
+        <div class="section-header" onclick="toggle('sec-workflow')">
+            <span class="chevron">▼</span>
+            <span class="section-title">⚙️ 工作流</span>
+        </div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.generateReleaseYml')">
                 <span class="icon">📄</span> 生成 Release.yml
@@ -166,10 +126,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">📦 Git 操作</div>
+    <div class="section" id="sec-git">
+        <div class="section-header" onclick="toggle('sec-git')">
+            <span class="chevron">▼</span>
+            <span class="section-title">📦 Git 操作</span>
+        </div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.gitPull')">
                 <span class="icon">⬇️</span> Git Pull
@@ -180,10 +141,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">🏷️ Tag 管理</div>
+    <div class="section" id="sec-tag">
+        <div class="section-header" onclick="toggle('sec-tag')">
+            <span class="chevron">▼</span>
+            <span class="section-title">🏷️ Tag 管理</span>
+        </div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.deleteLatestTag')">
                 <span class="icon">🗑️</span> 删除最新 Tag
@@ -197,10 +159,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">⏪ 回退记录</div>
+    <div class="section" id="sec-reset">
+        <div class="section-header" onclick="toggle('sec-reset')">
+            <span class="chevron">▼</span>
+            <span class="section-title">⏪ 回退记录</span>
+        </div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.resetLocalCommits')">
                 <span class="icon">↩️</span> 回退本地记录
@@ -211,10 +174,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">🗑️ 删除记录</div>
+    <div class="section" id="sec-delete">
+        <div class="section-header" onclick="toggle('sec-delete')">
+            <span class="chevron">▼</span>
+            <span class="section-title">🗑️ 删除记录</span>
+        </div>
         <div class="btn-group">
             <button class="btn" onclick="exec('workflow-generator.deleteLocalCommits')">
                 <span class="icon">📍</span> 删除本地记录
@@ -225,10 +189,11 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section">
-        <div class="section-title">🔄 恢复</div>
+    <div class="section" id="sec-recover">
+        <div class="section-header" onclick="toggle('sec-recover')">
+            <span class="chevron">▼</span>
+            <span class="section-title">🔄 恢复</span>
+        </div>
         <div class="btn-group">
             <button class="btn btn-primary" onclick="exec('workflow-generator.recoverCommits')">
                 <span class="icon">♻️</span> 恢复记录 (reflog)
@@ -238,6 +203,19 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
 
     <script>
         const vscode = acquireVsCodeApi();
+        const state = vscode.getState() || {};
+        
+        // 恢复折叠状态
+        Object.keys(state).forEach(id => {
+            if (state[id]) document.getElementById(id)?.classList.add('collapsed');
+        });
+        
+        function toggle(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('collapsed');
+            state[id] = el.classList.contains('collapsed');
+            vscode.setState(state);
+        }
         
         function exec(commandId) {
             vscode.postMessage({ command: 'executeCommand', commandId });
