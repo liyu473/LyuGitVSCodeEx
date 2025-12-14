@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as https from 'https';
+import { WorkspaceManager } from './workspaceManager';
 
 const execAsync = promisify(exec);
 
@@ -15,6 +16,9 @@ interface NetworkConfig {
 }
 
 export class GitHubHelper {
+    private workspaceManager = WorkspaceManager.getInstance();
+    private currentFolder: vscode.WorkspaceFolder | undefined;
+
     private getNetworkConfig(): NetworkConfig {
         const config = vscode.workspace.getConfiguration('workflowGenerator.network');
         return {
@@ -23,13 +27,24 @@ export class GitHubHelper {
             retryDelay: config.get('retryDelay', 1500)
         };
     }
+
+    /**
+     * 选择工作区
+     */
+    private async selectWorkspace(): Promise<vscode.WorkspaceFolder | undefined> {
+        this.currentFolder = await this.workspaceManager.selectWorkspaceFolderSmart({
+            gitRepoOnly: true,
+            placeHolder: '选择要操作的 GitHub 仓库'
+        });
+        return this.currentFolder;
+    }
+
     private async getRepoUrl(): Promise<string | null> {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolder) return null;
+        if (!this.currentFolder) return null;
 
         try {
             const { stdout } = await execAsync('git remote get-url origin', { 
-                cwd: workspaceFolder.uri.fsPath 
+                cwd: this.currentFolder.uri.fsPath 
             });
             return stdout.trim();
         } catch {
@@ -50,6 +65,16 @@ export class GitHubHelper {
     }
 
     async openSecretsPage(): Promise<void> {
+        // 选择工作区
+        if (!await this.selectWorkspace()) return;
+
+        await this.openSecretsPageInternal();
+    }
+
+    /**
+     * 内部方法，不会重新选择工作区
+     */
+    private async openSecretsPageInternal(): Promise<void> {
         const remoteUrl = await this.getRepoUrl();
         if (!remoteUrl) {
             vscode.window.showErrorMessage('未找到 Git 远程仓库');
@@ -79,6 +104,9 @@ export class GitHubHelper {
     }
 
     async openActionsPage(): Promise<void> {
+        // 选择工作区
+        if (!await this.selectWorkspace()) return;
+
         const remoteUrl = await this.getRepoUrl();
         if (!remoteUrl) {
             vscode.window.showErrorMessage('未找到 Git 远程仓库');
@@ -195,6 +223,9 @@ export class GitHubHelper {
     }
 
     async manageSecrets(): Promise<void> {
+        // 选择工作区
+        if (!await this.selectWorkspace()) return;
+
         const token = await this.getGitHubToken();
         if (!token) return;
 
@@ -232,7 +263,7 @@ export class GitHubHelper {
                 await this.deleteSecret(token, owner, repo);
                 break;
             case 'open':
-                await this.openSecretsPage();
+                await this.openSecretsPageInternal();
                 break;
         }
     }
@@ -319,6 +350,9 @@ export class GitHubHelper {
     }
 
     async deleteWorkflowRuns(): Promise<void> {
+        // 选择工作区
+        if (!await this.selectWorkspace()) return;
+
         const token = await this.getGitHubToken();
         if (!token) return;
 

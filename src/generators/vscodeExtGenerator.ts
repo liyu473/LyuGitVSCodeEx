@@ -1,14 +1,18 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { WorkspaceManager } from '../git/workspaceManager';
 
 export class VSCodeExtGenerator {
+    private workspaceManager = WorkspaceManager.getInstance();
+
     async generate(): Promise<void> {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolder) {
-            vscode.window.showErrorMessage('请先打开一个工作区');
-            return;
-        }
+        // 选择工作区
+        const workspaceFolder = await this.workspaceManager.selectWorkspaceFolderSmart({
+            gitRepoOnly: false,
+            placeHolder: '选择要生成 VS Code 扩展工作流的项目'
+        });
+        if (!workspaceFolder) return;
 
         // 检查是否是 VS Code 扩展项目
         const packageJsonPath = path.join(workspaceFolder.uri.fsPath, 'package.json');

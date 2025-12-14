@@ -1,17 +1,13 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { WorkspaceManager } from './workspaceManager';
 
 const execAsync = promisify(exec);
 
 export class GitOperations {
-    private getWorkspaceFolder(): vscode.WorkspaceFolder {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) {
-            throw new Error('请先打开一个工作区');
-        }
-        return folder;
-    }
+    private workspaceManager = WorkspaceManager.getInstance();
+    private currentFolder: vscode.WorkspaceFolder | undefined;
 
     private getGitTimeout(): number {
         return vscode.workspace.getConfiguration('workflowGenerator.git').get('commandTimeout', 30000);
@@ -25,6 +21,27 @@ export class GitOperations {
         };
     }
 
+    /**
+     * 选择工作区（多项目时让用户选择）
+     */
+    private async selectWorkspace(gitRepoOnly = true): Promise<vscode.WorkspaceFolder | undefined> {
+        this.currentFolder = await this.workspaceManager.selectWorkspaceFolderSmart({
+            gitRepoOnly,
+            placeHolder: '选择要操作的 Git 仓库'
+        });
+        return this.currentFolder;
+    }
+
+    /**
+     * 获取当前工作区（必须先调用 selectWorkspace）
+     */
+    private getWorkspaceFolder(): vscode.WorkspaceFolder {
+        if (!this.currentFolder) {
+            throw new Error('请先选择工作区');
+        }
+        return this.currentFolder;
+    }
+
     private async runGitCommand(command: string, timeout?: number): Promise<string> {
         const workspaceFolder = this.getWorkspaceFolder();
         const actualTimeout = timeout ?? this.getGitTimeout();
@@ -32,6 +49,27 @@ export class GitOperations {
         try {
             const { stdout } = await execAsync(command, { 
                 cwd: workspaceFolder.uri.fsPath,
+                timeout: actualTimeout 
+            });
+            return stdout.trim();
+        } catch (error: unknown) {
+            const err = error as { stderr?: string; message?: string; killed?: boolean };
+            if (err.killed) {
+                throw new Error('操作超时，请检查网络连接');
+            }
+            throw new Error(err.stderr || err.message || 'Unknown error');
+        }
+    }
+
+    /**
+     * 在指定文件夹运行 Git 命令
+     */
+    private async runGitCommandInFolder(command: string, folder: vscode.WorkspaceFolder, timeout?: number): Promise<string> {
+        const actualTimeout = timeout ?? this.getGitTimeout();
+
+        try {
+            const { stdout } = await execAsync(command, { 
+                cwd: folder.uri.fsPath,
                 timeout: actualTimeout 
             });
             return stdout.trim();
@@ -68,9 +106,13 @@ export class GitOperations {
         throw lastError;
     }
 
-    async isGitRepo(): Promise<boolean> {
+    async isGitRepo(folder?: vscode.WorkspaceFolder): Promise<boolean> {
         try {
-            await this.runGitCommand('git rev-parse --git-dir');
+            if (folder) {
+                await this.runGitCommandInFolder('git rev-parse --git-dir', folder);
+            } else {
+                await this.runGitCommand('git rev-parse --git-dir');
+            }
             return true;
         } catch {
             return false;
@@ -79,9 +121,17 @@ export class GitOperations {
 
     async initRepo(): Promise<void> {
         try {
-            const isRepo = await this.isGitRepo();
+            // 初始化时不要求是 Git 仓库
+            const folder = await this.workspaceManager.selectWorkspaceFolderSmart({
+                gitRepoOnly: false,
+                placeHolder: '选择要初始化 Git 的项目'
+            });
+            if (!folder) return;
+            this.currentFolder = folder;
+
+            const isRepo = await this.isGitRepo(folder);
             if (isRepo) {
-                vscode.window.showInformationMessage('当前目录已经是 Git 仓库');
+                vscode.window.showInformationMessage(`${folder.name} 已经是 Git 仓库`);
                 return;
             }
 
@@ -198,9 +248,17 @@ $RECYCLE.BIN/
 
     async addGitignore(): Promise<void> {
         try {
+            // 选择工作区（不要求是 Git 仓库）
+            const folder = await this.workspaceManager.selectWorkspaceFolderSmart({
+                gitRepoOnly: false,
+                placeHolder: '选择要添加 .gitignore 的项目'
+            });
+            if (!folder) return;
+            this.currentFolder = folder;
+
             const fs = await import('fs');
             const path = await import('path');
-            const workspaceFolder = this.getWorkspaceFolder();
+            const workspaceFolder = folder;
             const gitignorePath = path.join(workspaceFolder.uri.fsPath, '.gitignore');
 
             const exists = fs.existsSync(gitignorePath);
@@ -293,10 +351,18 @@ $RECYCLE.BIN/
 
     async addRemoteAndPush(): Promise<void> {
         try {
-            const isRepo = await this.isGitRepo();
+            // 先选择工作区
+            const folder = await this.workspaceManager.selectWorkspaceFolderSmart({
+                gitRepoOnly: false,
+                placeHolder: '选择要推送的项目'
+            });
+            if (!folder) return;
+            this.currentFolder = folder;
+
+            const isRepo = await this.isGitRepo(folder);
             if (!isRepo) {
                 const init = await vscode.window.showWarningMessage(
-                    '当前目录不是 Git 仓库，是否初始化？',
+                    `${folder.name} 不是 Git 仓库，是否初始化？`,
                     '初始化', '取消'
                 );
                 if (init === '初始化') {
@@ -369,6 +435,9 @@ $RECYCLE.BIN/
 
     async createTag(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             // 检查是否有提交
             try {
                 await this.runGitCommand('git rev-parse HEAD');
@@ -427,6 +496,9 @@ $RECYCLE.BIN/
 
     async deleteLatestTag(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const latestTag = await this.runGitCommand('git describe --tags --abbrev=0');
             if (!latestTag) {
                 vscode.window.showWarningMessage('没有找到任何 Tag');
@@ -454,6 +526,9 @@ $RECYCLE.BIN/
 
     async pull(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title: 'Git Pull...' },
                 async () => {
@@ -468,6 +543,9 @@ $RECYCLE.BIN/
 
     async push(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const pushTags = await vscode.window.showQuickPick(
                 ['仅推送代码', '推送代码和 Tags'],
                 { placeHolder: '选择推送方式' }
@@ -493,6 +571,9 @@ $RECYCLE.BIN/
 
     async deleteLocalTag(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const tags = await this.runGitCommand('git tag -l');
             if (!tags) {
                 vscode.window.showWarningMessage('没有本地 Tag');
@@ -518,6 +599,9 @@ $RECYCLE.BIN/
 
     async deleteRemoteTag(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const tags = await this.runGitCommandWithRetry('git ls-remote --tags origin');
             if (!tags) {
                 vscode.window.showWarningMessage('没有远程 Tag');
@@ -564,6 +648,9 @@ $RECYCLE.BIN/
 
     async cleanMergedBranches(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const branches = await this.runGitCommand('git branch --merged');
             const branchList = branches.split('\n')
                 .map(b => b.trim())
@@ -593,6 +680,9 @@ $RECYCLE.BIN/
     // 回退本地记录（选择某个提交回退）
     async resetLocalCommits(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const log = await this.runGitCommand('git log --oneline -20');
             if (!log) {
                 vscode.window.showWarningMessage('没有提交记录');
@@ -636,6 +726,9 @@ $RECYCLE.BIN/
     // 回退远程记录（选择某个提交，本地和远程都回退）
     async resetRemoteCommits(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             try {
                 await this.runGitCommand('git remote get-url origin');
             } catch {
@@ -685,6 +778,9 @@ $RECYCLE.BIN/
     // 删除本地记录（选择删除几个）
     async deleteLocalCommits(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const count = await this.runGitCommand('git rev-list --count HEAD');
             const totalCommits = parseInt(count);
 
@@ -730,6 +826,9 @@ $RECYCLE.BIN/
     // 删除远程记录（选择删除几个）
     async deleteRemoteCommits(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             try {
                 await this.runGitCommand('git remote get-url origin');
             } catch {
@@ -793,6 +892,9 @@ $RECYCLE.BIN/
     // 恢复记录（从 reflog 恢复）
     async recoverCommits(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const reflog = await this.runGitCommand('git reflog -20 --format="%h %gd %gs"');
             if (!reflog) {
                 vscode.window.showWarningMessage('没有可恢复的记录');

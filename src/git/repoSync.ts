@@ -1,17 +1,13 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { WorkspaceManager } from './workspaceManager';
 
 const execAsync = promisify(exec);
 
 export class RepoSync {
-    private getWorkspaceFolder(): vscode.WorkspaceFolder {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) {
-            throw new Error('请先打开一个工作区');
-        }
-        return folder;
-    }
+    private workspaceManager = WorkspaceManager.getInstance();
+    private currentFolder: vscode.WorkspaceFolder | undefined;
 
     private getConfig() {
         const gitConfig = vscode.workspace.getConfiguration('workflowGenerator.git');
@@ -21,6 +17,24 @@ export class RepoSync {
             retryCount: networkConfig.get('retryCount', 3) as number,
             retryDelay: networkConfig.get('retryDelay', 1500) as number
         };
+    }
+
+    /**
+     * 选择工作区
+     */
+    private async selectWorkspace(): Promise<vscode.WorkspaceFolder | undefined> {
+        this.currentFolder = await this.workspaceManager.selectWorkspaceFolderSmart({
+            gitRepoOnly: true,
+            placeHolder: '选择要同步的 Git 仓库'
+        });
+        return this.currentFolder;
+    }
+
+    private getWorkspaceFolder(): vscode.WorkspaceFolder {
+        if (!this.currentFolder) {
+            throw new Error('请先选择工作区');
+        }
+        return this.currentFolder;
     }
 
     private async runGitCommand(command: string): Promise<string> {
@@ -115,6 +129,9 @@ export class RepoSync {
     // 管理远程仓库
     async manageRemotes(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const remotes = await this.getRemotes();
 
             const action = await vscode.window.showQuickPick([
@@ -199,6 +216,9 @@ export class RepoSync {
     // 同步到所有远程仓库
     async syncToAll(): Promise<void> {
         try {
+            // 选择工作区
+            if (!await this.selectWorkspace()) return;
+
             const remotes = await this.getRemotes();
             if (remotes.length === 0) {
                 vscode.window.showWarningMessage('没有配置远程仓库');
