@@ -2,7 +2,7 @@
   "name": "lyugitex",
   "displayName": "LyuGitEx",
   "description": "快速生成 CI/CD 工作流和 Git 操作工具",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "liyu473",
   "repository": {
     "type": "git",
