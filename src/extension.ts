@@ -4,6 +4,7 @@ import { VSCodeExtGenerator } from './generators/vscodeExtGenerator';
 import { GitOperations } from './git/gitOperations';
 import { GitHubHelper } from './git/githubHelper';
 import { RepoSync } from './git/repoSync';
+import { SecretStorage } from './git/secretStorage';
 import { WorkflowWebviewProvider } from './views/webviewPanel';
 
 /**
@@ -22,6 +23,10 @@ function wrapCommand(fn: () => Promise<void>): () => Promise<void> {
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('LyuGitEx 已激活');
+
+    // 初始化密钥存储
+    const secretStorage = SecretStorage.getInstance();
+    secretStorage.initialize(context.secrets);
 
     const gitOps = new GitOperations();
     const releaseGenerator = new ReleaseYmlGenerator();
@@ -155,6 +160,11 @@ export function activate(context: vscode.ExtensionContext) {
     // 同步到远程仓库
     context.subscriptions.push(
         vscode.commands.registerCommand('lyugitex.syncToRemotes', wrapCommand(() => repoSync.syncToAll()))
+    );
+
+    // 管理本地保存的密钥
+    context.subscriptions.push(
+        vscode.commands.registerCommand('lyugitex.manageLocalSecrets', wrapCommand(() => secretStorage.manageSecrets()))
     );
 }
 

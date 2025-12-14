@@ -258,6 +258,9 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <span class="section-title">⚙️ 设置</span>
         </div>
         <div class="btn-group">
+            <button class="btn" data-cmd="lyugitex.manageLocalSecrets" onclick="exec(this)" title="管理本地保存的密钥">
+                <span class="spinner"></span><span class="icon">🔑</span> 管理本地密钥
+            </button>
             <button class="btn" data-cmd="lyugitex.openSettings" onclick="exec(this)" title="打开扩展设置页面，可配置：网络请求重试次数、超时时间、重试间隔、Git 命令超时时间等">
                 <span class="spinner"></span><span class="icon">🔧</span> 网络与超时设置
             </button>

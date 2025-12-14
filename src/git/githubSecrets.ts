@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import { GitHubApi } from './githubApi';
+import { SecretStorage } from './secretStorage';
 import sodium from 'libsodium-wrappers-sumo';
 
 /**
  * GitHub Secrets 管理
  */
 export class GitHubSecrets extends GitHubApi {
+    private secretStorage = SecretStorage.getInstance();
     async listSecrets(token: string, owner: string, repo: string): Promise<void> {
         const result = await this.githubRequestWithProgress<{ secrets: { name: string; updated_at: string }[] }>(
             '正在获取 Secrets...',
@@ -35,11 +37,32 @@ export class GitHubSecrets extends GitHubApi {
         });
         if (!name) return;
 
-        const value = await vscode.window.showInputBox({
-            prompt: 'Secret 值',
-            password: true
-        });
+        // 使用密钥选择器
+        const value = await this.secretStorage.showSecretPicker('选择密钥值（可从已保存的密钥中选择）');
         if (!value) return;
+
+        // 询问是否保存这个密钥
+        const savedSecrets = await this.secretStorage.getSavedSecrets();
+        const alreadySaved = savedSecrets.some(s => s.value === value);
+        
+        if (!alreadySaved) {
+            const saveIt = await vscode.window.showQuickPick(
+                ['是，保存到本地', '否，仅本次使用'],
+                { placeHolder: '是否将此密钥保存到本地以便下次使用？' }
+            );
+            
+            if (saveIt?.startsWith('是')) {
+                const secretName = await vscode.window.showInputBox({
+                    prompt: '给这个密钥起个名字',
+                    value: name,
+                    placeHolder: '例如: NuGet API Key'
+                });
+                if (secretName) {
+                    await this.secretStorage.saveSecret(secretName, value, `用于 ${repo}`);
+                    vscode.window.showInformationMessage(`密钥已保存为 "${secretName}"`);
+                }
+            }
+        }
 
         const keyResult = await this.githubRequestWithProgress<{ key: string; key_id: string }>(
             '正在获取公钥...',

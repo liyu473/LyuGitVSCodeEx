@@ -138,6 +138,11 @@
         "command": "lyugitex.syncToRemotes",
         "title": "同步到远程仓库",
         "category": "LyuGitEx"
+      },
+      {
+        "command": "lyugitex.manageLocalSecrets",
+        "title": "管理本地密钥",
+        "category": "LyuGitEx"
       }
     ],
     "menus": {
@@ -162,7 +167,8 @@
         {
           "type": "webview",
           "id": "lyugitexWebview",
-          "name": "工具面板"
+          "name": "工具面板",
+          "icon": "resources/icon.svg"
         }
       ]
     },
