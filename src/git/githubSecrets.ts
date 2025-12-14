@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GitHubApi } from './githubApi';
+import sodium from 'libsodium-wrappers-sumo';
 
 /**
  * GitHub Secrets 管理
@@ -123,7 +124,6 @@ export class GitHubSecrets extends GitHubApi {
 
     private async encryptSecret(secret: string, publicKey: string): Promise<string> {
         try {
-            const sodium = await import('libsodium-wrappers-sumo');
             await sodium.ready;
             
             const keyBytes = sodium.from_base64(publicKey, sodium.base64_variants.ORIGINAL);
