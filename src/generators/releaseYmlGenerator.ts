@@ -8,7 +8,8 @@ type ReleaseType = 'nuget' | 'zip' | 'both';
 interface ReleaseConfig {
     projects: string[];
     releaseType: ReleaseType;
-    nugetApiKeySecret?: string;
+    nugetTrustedUser?: string;
+    githubEnvironment?: string;
     nugetSource: string;
     dotnetVersions: string[];
     runtimes: string[];
@@ -49,14 +50,23 @@ export class ReleaseYmlGenerator {
 
         if (!selectedProjects || selectedProjects.length === 0) return;
 
-        // NuGet 配置
-        let nugetApiKeySecret: string | undefined;
+        // NuGet Trusted Publishing 配置
+        let nugetTrustedUser: string | undefined;
+        let githubEnvironment: string | undefined;
         if (releaseType === 'nuget' || releaseType === 'both') {
-            nugetApiKeySecret = await vscode.window.showInputBox({
-                prompt: 'GitHub Secrets 中的 NuGet API Key 名称',
-                value: 'NUGET_API_KEY'
+            nugetTrustedUser = await vscode.window.showInputBox({
+                prompt: 'NuGet Trusted Publishing 用户名（NuGet.org 包所有者）',
+                value: 'liyu473',
+                placeHolder: '例如: liyu473'
             });
-            if (!nugetApiKeySecret) return;
+            if (!nugetTrustedUser) return;
+
+            githubEnvironment = await vscode.window.showInputBox({
+                prompt: 'GitHub Environment 名称（必须与 NuGet Trusted Publishing 策略一致，留空表示不使用）',
+                value: 'release',
+                placeHolder: '例如: release'
+            });
+            if (githubEnvironment === undefined) return;
         }
 
         // ZIP 运行时选择
@@ -85,7 +95,8 @@ export class ReleaseYmlGenerator {
         const config: ReleaseConfig = {
             projects: selectedProjects.map(p => p.description!),
             releaseType,
-            nugetApiKeySecret,
+            nugetTrustedUser,
+            githubEnvironment,
             nugetSource: 'https://api.nuget.org/v3/index.json',
             dotnetVersions: allVersions.size > 0 ? [...allVersions] : ['8.0.x'],
             runtimes
@@ -127,9 +138,19 @@ export class ReleaseYmlGenerator {
         }
 
         let buildSteps = '';
+        const hasNuget = config.releaseType === 'nuget' || config.releaseType === 'both';
+
+        const nugetLoginStep = hasNuget ? `
+
+      - name: NuGet Login
+        if: \${{ !inputs.dry_run }}
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${config.nugetTrustedUser}` : '';
 
         // NuGet 步骤
-        if (config.releaseType === 'nuget' || config.releaseType === 'both') {
+        if (hasNuget) {
             buildSteps += config.projects.map(proj => {
                 const projName = path.basename(proj, '.csproj');
                 return `
@@ -138,7 +159,7 @@ export class ReleaseYmlGenerator {
 
       - name: Push ${projName} to NuGet
         if: \${{ !inputs.dry_run }}
-        run: dotnet nuget push ./nupkgs/${projName}.*.nupkg --api-key \${{ secrets.${config.nugetApiKeySecret} }} --source ${config.nugetSource} --skip-duplicate`;
+        run: dotnet nuget push ./nupkgs/${projName}.*.nupkg --api-key "\${{ steps.login.outputs.NUGET_API_KEY }}" --source ${config.nugetSource} --skip-duplicate`;
             }).join('\n');
         }
 
@@ -168,6 +189,13 @@ export class ReleaseYmlGenerator {
             releaseFiles += '            ./publish/*.zip';
         }
 
+        const permissions = hasNuget
+            ? '  contents: write\r\n  id-token: write'
+            : '  contents: write';
+        const environment = config.githubEnvironment
+            ? `    environment: ${config.githubEnvironment}\r\n`
+            : '';
+
         const ymlContent = `name: Release
 
 on:
@@ -182,11 +210,12 @@ on:
         default: false
 
 permissions:
-  contents: write
+${permissions}
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+${environment}
     
     steps:
       - name: Checkout
@@ -203,6 +232,7 @@ ${config.dotnetVersions.map(v => `            ${v}`).join('\n')}
 
       - name: Build
         run: dotnet build -c Release --no-restore
+${nugetLoginStep}
 ${buildSteps}
 
       - name: Create GitHub Release

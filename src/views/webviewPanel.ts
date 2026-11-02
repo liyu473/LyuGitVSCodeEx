@@ -150,7 +150,7 @@ export class WorkflowWebviewProvider implements vscode.WebviewViewProvider {
             <button class="btn" data-cmd="lyugitex.generateVscodeExtYml" onclick="exec(this)" title="为 VS Code 扩展项目生成发布工作流。支持打包 .vsix 文件、发布到 VS Code Marketplace。需要配置 VSCE_PAT Secret">
                 <span class="spinner"></span><span class="icon">🧩</span> VS Code 扩展工作流
             </button>
-            <button class="btn" data-cmd="lyugitex.manageSecrets" onclick="exec(this)" title="管理 GitHub 仓库的 Secrets（如 NUGET_API_KEY）。使用 GitHub OAuth 登录，登录一次后会话保持无需重复登录，可添加、修改、删除 Secrets">
+            <button class="btn" data-cmd="lyugitex.manageSecrets" onclick="exec(this)" title="管理 GitHub 仓库的 Actions Secrets。NuGet 发布请使用 Trusted Publishing，无需保存 API Key。使用 GitHub OAuth 登录，登录一次后会话保持无需重复登录，可添加、修改、删除 Secrets">
                 <span class="spinner"></span><span class="icon">🔑</span> 管理 GitHub Secrets
             </button>
             <button class="btn" data-cmd="lyugitex.openActions" onclick="exec(this)" title="在浏览器中打开当前仓库的 GitHub Actions 页面，查看工作流运行状态和日志">

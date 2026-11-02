@@ -31,8 +31,8 @@ export class GitHubSecrets extends GitHubApi {
 
     async createSecret(token: string, owner: string, repo: string): Promise<void> {
         const name = await vscode.window.showInputBox({
-            prompt: 'Secret 名称',
-            value: 'NUGET_API_KEY',
+            prompt: 'Secret 名称（Trusted Publishing 无需 NuGet API Key）',
+            placeHolder: '例如: DEPLOY_TOKEN',
             validateInput: (v) => /^[A-Z_][A-Z0-9_]*$/.test(v) ? null : '只能使用大写字母、数字和下划线'
         });
         if (!name) return;
@@ -55,7 +55,7 @@ export class GitHubSecrets extends GitHubApi {
                 const secretName = await vscode.window.showInputBox({
                     prompt: '给这个密钥起个名字',
                     value: name,
-                    placeHolder: '例如: NuGet API Key'
+                    placeHolder: '例如: 部署令牌'
                 });
                 if (secretName) {
                     await this.secretStorage.saveSecret(secretName, value, `用于 ${repo}`);

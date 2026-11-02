@@ -178,7 +178,7 @@ export class SecretStorage {
     private async addSecretDialog(): Promise<void> {
         const name = await vscode.window.showInputBox({
             prompt: '密钥名称（用于识别）',
-            placeHolder: '例如: NuGet API Key'
+            placeHolder: '例如: 部署令牌'
         });
         if (!name) return;
 
@@ -190,7 +190,7 @@ export class SecretStorage {
 
         const description = await vscode.window.showInputBox({
             prompt: '描述（可选）',
-            placeHolder: '例如: 用于发布 NuGet 包'
+            placeHolder: '例如: 用于 GitHub Actions 部署'
         });
 
         await this.saveSecret(name, value, description);
